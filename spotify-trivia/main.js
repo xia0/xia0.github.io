@@ -170,7 +170,7 @@
     getPlaylists();
   }
 
-  function getPlaylists(offset = 0, limit = 50) {
+  function getPlaylists(offset = 0, limit = 10) {
     fetch('https://api.spotify.com/v1/me/playlists?limit=' + limit + '&offset=' + offset, {
       headers: {
         Authorization: 'Bearer ' + access_token,
@@ -192,7 +192,8 @@
 
         // resursive function to ensure all playlists are grabbed
         //console.log(playlistData);
-        //if (count(data.items) >= limit) getPlaylists(offset + limit, limit);
+        if (data.total == data.limit) getPlaylists(data.offset + data.limit, data.limit);
+        else console.log(playlistData);
       })
       .catch((error) => {
         console.error(error);
