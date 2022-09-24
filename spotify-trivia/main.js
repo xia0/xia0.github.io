@@ -215,7 +215,7 @@
   // Your client id from your app in the spotify dashboard:
   // https://developer.spotify.com/dashboard/applications
   const client_id = '43a22aa24295448faec97a2636493a7d';
-  const redirect_uri = 'https://127.0.0.1/'; // Your redirect uri
+  const redirect_uri = 'https://xia0.github.io/spotify-trivia/'; // Your redirect uri
 
   // Restore tokens from localStorage
   let access_token = localStorage.getItem('access_token') || null;
