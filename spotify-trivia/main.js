@@ -166,7 +166,7 @@
         mainPlaceholder.innerHTML = errorTemplate(error.error);
       });
 
-    getPlayLists();
+    getPlaylists();
   }
 
   function getPlaylists() {
