@@ -167,7 +167,7 @@
       });
 
     var playlistData = [];
-    getPlaylists();
+    //getPlaylists();
   }
 
   function getPlaylists(offset = 0, limit = 50) {
