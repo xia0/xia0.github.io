@@ -43,7 +43,10 @@
         {
           response_type: 'code',
           client_id,
-          scope: 'user-read-private user-read-email',
+          scope: 'user-read-private user-read-email \
+                  playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public \
+                  user-read-playback-position user-read-playback-state user-read-currently-playing \
+                  streaming app-remote-control',
           code_challenge_method: 'S256',
           code_challenge,
           redirect_uri,
@@ -156,7 +159,11 @@
         }
       })
       .then((data) => {
-        console.log(data);
+        user_id = data.id;
+        playlistData = [];
+        getPlaylists(true);
+
+        //console.log(data);
         document.getElementById('login').style.display = 'none';
         document.getElementById('loggedin').style.display = 'unset';
         mainPlaceholder.innerHTML = userProfileTemplate(data);
@@ -166,11 +173,16 @@
         mainPlaceholder.innerHTML = errorTemplate(error.error);
       });
 
-    var playlistData = [];
-    getPlaylists();
+
   }
 
-  function getPlaylists(offset = 0, limit = 10) {
+
+  /** Recursive function to get all the user's playlists and filter for owned ones only
+  */
+  function getPlaylists(update = false, offset = 0, limit = 50) {
+
+    if (offset == 0) playlistData = []; // Reset the array if starting from 0
+
     fetch('https://api.spotify.com/v1/me/playlists?limit=' + limit + '&offset=' + offset, {
       headers: {
         Authorization: 'Bearer ' + access_token,
@@ -184,21 +196,246 @@
         }
       })
       .then((data) => {
-        console.log(data);
-        //playlistData.push(data.items);
+        //console.log(data.items);
+        playlistData = playlistData.concat(data.items);
         //document.getElementById('login').style.display = 'none';
         //document.getElementById('loggedin').style.display = 'unset';
         //mainPlaceholder.innerHTML = userProfileTemplate(data);
 
         // resursive function to ensure all playlists are grabbed
-        //console.log(playlistData);
-        if (acount(data.items) == data.limit) getPlaylists(data.offset + data.limit, data.limit);
-        else console.log(playlistData);
+        if (data.items.length == data.limit) getPlaylists(update, data.offset + data.limit, data.limit);
+        else {
+
+          // remove all playlists not owned by current user
+          /*
+          for (let i = 0; i < playlistData.length; i++) {
+            if (playlistData[i].owner.id != user_id) {
+              playlistData.splice(i, 1);
+              i--;
+            }
+          }
+          */
+
+          console.log(playlistData);
+          if (update) updatePlaylists();
+        }
+
       })
       .catch((error) => {
         console.error(error);
         mainPlaceholder.innerHTML = errorTemplate(error.error);
       });
+  }
+
+  /** Generate a formatted list of playlists
+  */
+  function updatePlaylists() {
+    $("#playlists").html("");
+
+    for (let i = 0; i < playlistData.length; i++) {
+      $("#playlists").append('<div class="playlist-item-container" id="'+playlistData[i].id+'">'+playlistData[i].name+'</div>');
+    }
+
+    // open tracks upon clicking
+    $(".playlist-item-container").click(function(event) {
+      $("#tracks").html(""); // reset currently selected playlist
+
+      // Load data from description
+      data = playlistData[$(this).index()].description.split(";");
+      selected_playlist_data = [];
+      for (let i = 0; i < data.length; i++) {
+        let times = data[i].split(",");
+        if (times.length < 2) break; // probably invalid data - leave data blank
+        if (isNaN(parseInt(times[0])) || isNaN(parseInt(times[1]))) break; // comma exists but not int values
+        selected_playlist_data[i] = [ parseInt(times[0]), parseInt(times[1]) ];
+      }
+      //console.log(selected_playlist_data);
+
+      // Load tracks from playlist
+      selected_playlist_id = event.target.id;
+      console.log(selected_playlist_id);
+      getTracks(selected_playlist_id);
+    });
+  }
+
+
+  /** Get tracks from specified playlist
+  */
+  function getTracks(playlist) {
+    $.ajax({
+      url: 'https://api.spotify.com/v1/playlists/'+playlist+'/tracks?limit=20',
+      type: 'GET',
+      headers: {
+        'Authorization' : 'Bearer ' + access_token
+      },
+      success: function(data) {
+        console.log(data);
+        updateTracks(data);
+      }
+    });
+  }
+
+  /** Generate formatted list of tracks
+  */
+  function updateTracks(data) {
+    tracks_data = data.items;
+
+    for (let i = 0; i < tracks_data.length; i++) {
+
+      // load track metadata
+      tracks_data[i].trivia_times = { start: 0, end: 0 }
+
+      // see if start and end times are defined for this track
+      if (typeof selected_playlist_data[i] !== 'undefined') {
+        tracks_data[i].trivia_times.start = selected_playlist_data[i][0];
+        tracks_data[i].trivia_times.end = selected_playlist_data[i][1];
+      }
+
+      // Set end time to track end if not yet specified
+      if (tracks_data[i].trivia_times.end <= 0) {
+        tracks_data[i].trivia_times.end = tracks_data[i].track.duration_ms;
+      }
+
+      $("#tracks").append('\
+        <div class="track-item" id="'+tracks_data[i].track.id+'">\
+          <div class="track-item-container">' + (i+1) + '. ' + tracks_data[i].track.name+'</div>\
+          <input class="time-start" type="text" value="'+tracks_data[i].trivia_times.start+'" />\
+          <input class="time-end" type="text" value="'+tracks_data[i].trivia_times.end+'" />\
+          <div class="slider"></div>\
+        </div>\
+      ');
+
+      $( ".slider" ).last().slider({
+        range: true,
+        min: 0,
+        max: tracks_data[i].track.duration_ms,
+        values: [ tracks_data[i].trivia_times.start, tracks_data[i].trivia_times.end ],
+        slide: function( event, ui ) {
+          clearTimeout(timerSave);
+          $(this).siblings(".time-start").val(ui.values[0]);
+          $(this).siblings(".time-end").val(ui.values[1]);
+          timerSave = setTimeout(saveDescription, 2000);
+        }
+      });
+    }
+
+    // also save if user types into textbox
+    $("input").change(function() {
+      clearTimeout(timerSave);
+      timerSave = setTimeout(saveDescription, 2000);
+    });
+
+    $(".time-start").change(function() {
+      $(this).siblings(".slider").slider( "values", 0, $(this).val() );
+    });
+
+    $(".time-end").change(function() {
+      $(this).siblings(".slider").slider( "values", 1, $(this).val() );
+    });
+
+
+    console.log(tracks_data);
+
+
+    // TEST play track on click
+    $(".track-item-container").click(function(event) {
+
+      //selected_track_id = event.target.id;
+      //console.log(selected_track_id);
+      //playTrack(selected_track_id);
+      playTrack(selected_playlist_id, $(this).parent().index(), $(this).siblings(".time-start").val());
+    });
+  }
+
+  /** Play track from selectd playlist
+  */
+  function playTrack(playlist_id, index, start_position = 0, duration = 0) {
+    console.log(playlist_id + " " + index);
+
+    let data = '{ "context_uri": "spotify:playlist:'+playlist_id+'", \
+                  "offset": { "position": '+index+' }, \
+                  "position_ms": '+start_position+' \
+                }';
+    //console.log(data);
+
+
+
+    // Send API request to start playing
+    $.ajax({
+      url: 'https://api.spotify.com/v1/me/player/play',
+      type: 'PUT',
+      headers: {
+        'Authorization' : 'Bearer ' + access_token
+      },
+      data: data,
+      success: function(data) {
+        console.log(data);
+
+        // Start a timer to pause it after the defined duration
+        timerPause = setTimeout(pauseTrack, $(".time-end").eq(index).val() - $(".time-start").eq(index).val() );
+
+        // Queue the next track if autopilot is on
+        if ($("#autopilot").is(':checked') && index + 1 < $(".track-item-container").length) {
+          console.log("SHOULD AUTOPLAY");
+          console.log($(".track-item-container").length);
+
+          clearTimeout(timerPlay);
+          timerPlay = setTimeout(function() {
+            if ($("#autopilot").is(':checked')) $(".track-item-container").eq(index+1).click();
+          }, $(".time-end").eq(index).val() - $(".time-start").eq(index).val() + 4000)
+
+        }
+
+      }
+    });
+  }
+
+  function pauseTrack() {
+    $.ajax({
+      url: 'https://api.spotify.com/v1/me/player/pause',
+      type: 'PUT',
+      headers: {
+        'Authorization' : 'Bearer ' + access_token
+      },
+      data: data,
+      success: function(data) {
+        console.log(data);
+      }
+    });
+
+    //playerPause();
+    //$("#togglePlay").click();
+  }
+
+  /** Save string to playlist's description
+  */
+  function saveDescription() {
+    clearTimeout(timerSave); // clear any existing timer for this function
+
+    let content_values = [];
+
+    $( ".track-item" ).each(function() {
+      content_values.push( $(this).children(".time-start").val() + ',' + $(this).children(".time-end").val() )
+    });
+
+    let data = '{ "description": "'+content_values.join(";")+'" }';
+    console.log(data);
+
+
+    $.ajax({
+      url: 'https://api.spotify.com/v1/playlists/'+selected_playlist_id,
+      type: 'PUT',
+      headers: {
+        'Authorization' : 'Bearer ' + access_token
+      },
+      data: data,
+      success: function(data) {
+        console.log(data);
+        console.log('saved');
+        getPlaylists(true);
+      }
+    });
+
   }
 
   function userProfileTemplate(data) {
@@ -249,7 +486,7 @@
   // Your client id from your app in the spotify dashboard:
   // https://developer.spotify.com/dashboard/applications
   const client_id = '43a22aa24295448faec97a2636493a7d';
-  const redirect_uri = 'https://xia0.github.io/spotify-trivia/'; // Your redirect uri
+  const redirect_uri = 'http://127.0.0.1/spotify-trivia/'; // Your redirect uri
 
   // Restore tokens from localStorage
   let access_token = localStorage.getItem('access_token') || null;
@@ -264,6 +501,15 @@
   // Example: http://127.0.0.1:8080/?code=NApCCg..BkWtQ&state=profile%2Factivity
   const args = new URLSearchParams(window.location.search);
   const code = args.get('code');
+
+  var playlistData = [];
+  var user_id = "";
+  var selected_playlist_id = "";
+  var selected_playlist_data = [];
+  var tracks_data = [];
+  var timerSave;
+  var timerPause;
+  var timerPlay;
 
   if (code) {
     // we have received the code from spotify and will exchange it for a access_token
@@ -291,6 +537,7 @@
   document
     .getElementById('refresh-button')
     .addEventListener('click', refreshToken, false);
+  setInterval(refreshToken, 1000*60*10);
 
   document
     .getElementById('logout-button')
