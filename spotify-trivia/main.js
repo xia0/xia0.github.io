@@ -185,13 +185,13 @@
       })
       .then((data) => {
         console.log(data);
-        playlistData.push(data.items);
+        //playlistData.push(data.items);
         //document.getElementById('login').style.display = 'none';
         //document.getElementById('loggedin').style.display = 'unset';
         //mainPlaceholder.innerHTML = userProfileTemplate(data);
 
         // resursive function to ensure all playlists are grabbed
-        console.log(playlistData);
+        //console.log(playlistData);
         //if (count(data.items) >= limit) getPlaylists(offset + limit, limit);
       })
       .catch((error) => {
