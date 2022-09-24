@@ -170,8 +170,8 @@
     getPlaylists();
   }
 
-  function getPlaylists() {
-    fetch('https://api.spotify.com/v1/me/playlists?limit=50`', {
+  function getPlaylists(offset = 0, limit = 50) {
+    fetch('https://api.spotify.com/v1/me/playlists?limit=' + limit + '&offset=' + offset + '`', {
       headers: {
         Authorization: 'Bearer ' + access_token,
       },
@@ -190,7 +190,9 @@
         //document.getElementById('loggedin').style.display = 'unset';
         //mainPlaceholder.innerHTML = userProfileTemplate(data);
 
+        // resursive function to ensure all playlists are grabbed
         console.log(playlistData);
+        //if (count(data.items) >= limit) getPlaylists(offset + limit, limit);
       })
       .catch((error) => {
         console.error(error);
