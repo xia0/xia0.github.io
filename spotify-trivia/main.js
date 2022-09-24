@@ -170,7 +170,7 @@
     getPlaylists();
   }
 
-  function getPlaylists(offset = 0, limit = 50) {
+  function getPlaylists(offset = 0, limit = 10) {
     fetch('https://api.spotify.com/v1/me/playlists?limit=' + limit + '&offset=' + offset + '`', {
       headers: {
         Authorization: 'Bearer ' + access_token,
