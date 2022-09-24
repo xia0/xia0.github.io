@@ -192,7 +192,7 @@
 
         // resursive function to ensure all playlists are grabbed
         //console.log(playlistData);
-        if (data.total == data.limit) getPlaylists(data.offset + data.limit, data.limit);
+        if (acount(data.items) == data.limit) getPlaylists(data.offset + data.limit, data.limit);
         else console.log(playlistData);
       })
       .catch((error) => {
