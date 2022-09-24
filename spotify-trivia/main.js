@@ -166,11 +166,12 @@
         mainPlaceholder.innerHTML = errorTemplate(error.error);
       });
 
+    var playlistData = [];
     getPlaylists();
   }
 
   function getPlaylists() {
-    fetch('https://api.spotify.com/v1/me/playlists', {
+    fetch('https://api.spotify.com/v1/me/playlists?limit=50`', {
       headers: {
         Authorization: 'Bearer ' + access_token,
       },
@@ -184,9 +185,12 @@
       })
       .then((data) => {
         console.log(data);
+        playlistData.push(data.items);
         //document.getElementById('login').style.display = 'none';
         //document.getElementById('loggedin').style.display = 'unset';
         //mainPlaceholder.innerHTML = userProfileTemplate(data);
+
+        console.log(playlistData);
       })
       .catch((error) => {
         console.error(error);
