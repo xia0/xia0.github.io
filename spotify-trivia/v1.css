@@ -23,6 +23,10 @@ body {
   background-color: #FFEE88;
 }
 
+#playlist-container, #tracks-container {
+  /*width: 600px;*/
+}
+
 #loading-container {
   position: fixed;
   top: 0;
