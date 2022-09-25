@@ -1,130 +1,86 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>
-    Example of the Authorization Code Flow with Proof Key for Code Exchange
-    (PKCE) with Spotify
-  </title>
-  <style type="text/css">
-      #login,
-      #loggedin {
-          display: none;
-      }
-
-      td {
-          border: grey solid 1px;
-          overflow-wrap: anywhere;
-      }
-
-      td:first-child {
-          min-width: 150px;
-      }
-  </style>
-  <link
-    href="jquery-ui-1.13.2/themes/ui-lightness/jquery-ui.css"
-    rel="stylesheet"
-  />
-  <script src="jquery-3.6.1.min.js"></script>
-  <script src="jquery-ui-1.13.2/jquery-ui.js"></script>
-</head>
-
-<body>
-<div>
-  <div id="login">
-    <h1>
-      This is an example of the Authorization Code Flow with Proof Key for
-      Code Exchange (PKCE)
-    </h1>
-    <button id="login-button">
-      Log in with Spotify
-    </button>
-  </div>
-  <div id="loggedin">
-    <div id="main"></div>
-    <div id="oauth"></div>
-    <button id="refresh-button">
-      Refresh access token
-    </button>
-    <button id="logout-button">
-      Logout
-    </button>
-
-
-    <div id="playlists"></div>
-    <div id="tracks"></div>
-
-  </div>
-</div>
-
-<button id="togglePlay">Toggle Play</button>
-<input type="checkbox" id="autopilot" value="1"><label for="autopilot"> Autopilot</label>
-
-  <script src="https://sdk.scdn.co/spotify-player.js"></script>
-  <script>
-
-
-
-          window.onSpotifyWebPlaybackSDKReady = () => {
-              const token = localStorage.getItem('access_token');
-              const player = new Spotify.Player({
-                  name: 'Web Playback SDK Quick Start Player',
-                  getOAuthToken: cb => { cb(token); },
-                  volume: 0.5
-              });
-
-              // Ready
-              player.addListener('ready', ({ device_id }) => {
-                  console.log('Ready with Device ID', device_id);
-
-                  $.ajax({
-                    url: 'https://api.spotify.com/v1/me/player',
-                    type: 'PUT',
-                    headers: {
-                      'Authorization' : 'Bearer ' + token
-                    },
-                    data: '{"device_ids": ["'+device_id+'"]}',
-                    success: function(data) {
-                      //
-                    }
-                  });
-
-
-              });
-
-              // Not Ready
-              player.addListener('not_ready', ({ device_id }) => {
-                  console.log('Device ID has gone offline', device_id);
-              });
-
-              player.addListener('initialization_error', ({ message }) => {
-                  console.error(message);
-              });
-
-              player.addListener('authentication_error', ({ message }) => {
-                  console.error(message);
-              });
-
-              player.addListener('account_error', ({ message }) => {
-                  console.error(message);
-              });
-
-              document.getElementById('togglePlay').onclick = function() {
-                player.togglePlay();
-              };
-
-              /*
-              function playerPause() {
-                player.pause().then(() => {
-                  console.log('Paused!');
-                });
-              }*/
-
-              player.connect();
-          }
-      </script>
-
+  <head>
+    <title>
+      Example of the Authorization Code Flow with Proof Key for Code Exchange
+      (PKCE) with Spotify
+    </title>
+    <link href="jquery-ui-1.13.2/themes/ui-lightness/jquery-ui.css" rel="stylesheet" />
+    <link href="v1.css" rel="stylesheet" />
+    <link href="loading-spinner.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+    <script src="jquery-3.6.1.min.js"></script>
+    <script src="jquery-ui-1.13.2/jquery-ui.js"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script src="main.js"></script>
+  </head>
+
+  <body>
+    <div>
+
+      <div id="loading-container">
+        <span class="loader"></span>
+      </div>
+
+      <div id="login">
+        <h1>
+          This is an example of the Authorization Code Flow with Proof Key for
+          Code Exchange (PKCE)
+        </h1>
+        <button id="login-button">
+          Log in with Spotify
+        </button>
+      </div>
 
 
-</body>
+      <div id="loggedin">
+
+
+
+        <div id="main"></div>
+        <div id="oauth"></div>
+        
+        <button id="refresh-button">
+          Refresh access token
+        </button>
+        <button id="logout-button">
+          Logout
+        </button>
+
+        <div id="playlists-container">
+          <div id="header">
+            <div id="profile-picture"></div>
+            <div id="display-name"></div>
+          </div>
+
+          <div id="filter-container">
+            <input type="text" id="filter" />
+          </div>
+
+          <div id="playlists"></div>
+        </div>
+
+        <div id="tracks-container">
+
+          <div id="playlist-header">
+            <div id="playlist-details"></div>
+            <div id="button-close-playlist">Close</div>
+            <button id="button-reset-time">Reset</button>
+            <button id="togglePlay">Toggle Play</button>
+            <input type="checkbox" id="autopilot" value="1"><label for="autopilot"> Autopilot</label>
+          </div>
+          <div id="tracks"></div>
+        </div>
+
+
+
+      </div>
+
+
+
+    </div>
+
+
+  </body>
 </html>

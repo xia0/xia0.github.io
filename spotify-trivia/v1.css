@@ -1,0 +1,152 @@
+#login,
+#loggedin {
+    display: none;
+}
+
+td {
+    border: grey solid 1px;
+    overflow-wrap: anywhere;
+}
+
+td:first-child {
+    min-width: 150px;
+}
+
+
+#oauth, #refresh-button {
+  display: none;
+}
+
+
+body {
+  font-family: "Roboto", sans-serif;
+  background-color: #FFEE88;
+}
+
+#loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 999;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+
+}
+
+#header {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+#profile-picture {
+  width: 50px;
+  height: 50px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+#display-name {
+  display: inline;
+  vertical-align: middle;
+  height: 50px;
+}
+
+#playlist-header {
+  background-color: #880044;
+}
+
+.playlist-item-container > div {
+  pointer-events: none;
+}
+
+.playlist-image, #playlist-image, .track-image {
+  width: 60px;
+  height: 60px;
+  display: inline-block;
+  background-image: url(images/music@3x.png);
+  background-size: cover;
+  background-position: center;
+}
+.playlist-text {
+  display: inline-block;
+}
+
+
+#tracks-container {
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%;
+  background-color: #FFEE88;
+}
+
+.track-item {
+  color: #FFFFFF;
+  background-color: #DD1155;
+  margin: 10px;
+  border-radius: 6px;
+}
+
+.track-item.played {
+  background-color: #00cc99;
+}
+
+.button-play-pause {
+  opacity: 0.9;
+  text-shadow: 1px 2px 2px #000000;
+
+  color: white;
+}
+
+.track-item {
+
+  padding: 4px;
+}
+
+.track-item-heading {
+  display: flex;
+  margin: 10px;
+}
+
+.track-image > .material-symbols-rounded {
+  font-size: 60px;
+}
+
+.track-image {
+  height: 60px;
+}
+
+.track-index {
+  font-size: 50px;
+  height: 60px;
+  vertical-align: middle;
+  margin-left: 10px;
+}
+
+.track-text {
+  height: 60px;
+  margin-left: 10px;
+}
+
+.track-title {
+  display: block;
+  font-size: 28px;
+}
+
+.track-artist {
+  display: block;
+  font-size: 16px;
+}
+
+
+.slider {
+  margin: 20px;
+}
