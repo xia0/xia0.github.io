@@ -77,6 +77,7 @@ let has_opened_playlist = false;
 var playlistData = [];
 var user_id = "";
 var selected_playlist_id = "";
+var selected_playlist_index = -1;
 var selected_playlist_data = [];
 var tracks_data = [];
 var timerSave;
@@ -88,6 +89,10 @@ let sliderDifference = 0;
 // Update token if current one is expired
 if (expires_at < Date.now()) {
   refreshToken();
+}
+else { // Otherwise, set a timeout to fetch new token before expiry
+  let interval = expires_at - Date.now() - 60*1000;
+  setTimeout(refreshToken, interval);
 }
 
 
@@ -160,6 +165,8 @@ $( document ).ready(function() {
     parent.location.hash = '';
 
     // Stop any currently playing tracks
+    clearTimeout(timerPause);
+    clearTimeout(timerPlay);
     pauseTrack();
 
     // Restore playlists view
@@ -167,6 +174,10 @@ $( document ).ready(function() {
     $('#tracks-container').animate({
       left: '-100%'
     });
+  });
+
+  $('#button-open-spotify').click(function() {
+    window.open(playlistData[selected_playlist_index].external_urls.spotify, '_blank').focus();
   });
 
 
@@ -476,10 +487,10 @@ function updatePlaylists() {
 
     // add details regarding permissions
     let attributes = [];
-    if (playlistData[i].collaborative) attributes.push("Collab");
+    if (playlistData[i].collaborative) attributes.push('<span class="material-symbols-rounded" title="Collaborative">group</span>');
 
-    if (playlistData[i].owner.id == user_id) attributes.push("Owner");
-    else if (!playlistData[i].collaborative) attributes.push("Read only");
+    if (playlistData[i].owner.id == user_id) attributes.push('<span class="material-symbols-rounded" title="Owner">edit</span>');
+    else if (!playlistData[i].collaborative) attributes.push('<span class="material-symbols-rounded" title="Read only">edit_off</span>');
 
     /*
     if (!playlistData[i].public) attributes.push("Public");
@@ -494,9 +505,11 @@ function updatePlaylists() {
 
     $("#playlists").append(
       '<div class="playlist-item-container" id="playlist-'+playlistData[i].id+'">\
+        <input type="hidden" class="playlist-index" value="'+i+'" />\
         <div class="playlist-image"/></div>\
         <div class="playlist-text">\
           <div class="playlist-title"><span>'+playlistData[i].name+'</span></div>\
+          <div class="playlist-byline"><span>by '+playlistData[i].owner.display_name+'</span></div>\
           <div class="playlist-details">'+attributes_string+'</div>\
         </div>\
       </div>'
@@ -517,7 +530,8 @@ function updatePlaylists() {
   // open tracks upon clicking
   $(".playlist-item-container").click(function(event) {
     selected_playlist_id = event.target.id.replace("playlist-", "");
-    console.log(selected_playlist_id);
+    selected_playlist_index = $(this).children('.playlist-index').val();
+    console.log(selected_playlist_index + '-' + selected_playlist_id);
 
     if (has_opened_playlist) $("#tracks").html(""); // Check to make sure a playlist wasn't loaded on refresh
     else has_opened_playlist = true;

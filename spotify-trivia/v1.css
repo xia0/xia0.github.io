@@ -13,7 +13,7 @@ td:first-child {
 }
 
 
-#oauth, #refresh-button {
+#oauth, #refresh-button, #button-reset-time, #togglePlay {
   display: none;
 }
 
@@ -138,12 +138,11 @@ body {
 
 .track-title {
   display: block;
-  font-size: 28px;
+  font-size: 20px;
 }
 
 .track-artist {
   display: block;
-  font-size: 16px;
 }
 
 
