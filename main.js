@@ -6,7 +6,7 @@ function onSpotifyWebPlaybackSDKReady() {
   if (access_token == null) return;
 
   const player = new Spotify.Player({
-      name: 'Web Playback SDK Quick Start Player',
+      name: 'Music Trivia Tool',
       getOAuthToken: cb => { cb(access_token); },
       volume: 0.5
   });
