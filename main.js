@@ -721,7 +721,7 @@ function updateTracks(data) {
         }
         //$(this).siblings(".time-end").val(ui.values[1]);
         updateTimeDescriptions($(this).siblings('.track-index').val(), ui.values[0], ui.values[1]);
-        updateProgressBar( $(this).siblings('.track-index').val() );
+        //updateProgressBar( $(this).siblings('.track-index').val() );
       },
       create: function( event, ui ) {
         $(this).append('<div class="play-progress-bar"></div>');
