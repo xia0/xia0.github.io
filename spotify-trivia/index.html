@@ -67,12 +67,43 @@
         <div id="tracks-container">
 
           <div id="playlist-header">
-            <div id="playlist-details"></div>
-            <button id="button-close-playlist">Close</button>
-            <button id="button-open-spotify">Open in Spotify</button>
+
+            <div class='tracks-playlist-row' id="tracks-playlist-row1">
+              <div id="tracks-playlist-text">
+                <div id="tracks-playlist-title"></div>
+                <div id="tracks-playlist-byline"></div>
+              </div>
+
+              <div id="tracks-playlist-menu">
+                <span id="button-close-playlist" class="material-symbols-rounded">close</span>
+              </div>
+            </div>
+
+            <div class='tracks-playlist-row' id="tracks-playlist-row2">
+
+              <input type="checkbox" id="autopilot" value="1"><label for="autopilot">
+                <span class="material-symbols-rounded" title="Auto play">time_auto</span>
+              </label>
+
+              <span id="pause-interval-radio-group">
+                <input type="radio" class="pause-interval-radio" id="pause-interval-1" name="pause-interval" value="1"><label for="pause-interval-1">1s</label>
+                <input type="radio" class="pause-interval-radio" id="pause-interval-5" name="pause-interval" value="5" checked><label for="pause-interval-5">5s</label>
+                <input type="radio" class="pause-interval-radio" id="pause-interval-10" name="pause-interval" value="10"><label for="pause-interval-10">10s</label>
+              </span>
+
+              <input type="checkbox" id="autosave" value="1" checked><label for="autosave">
+                <span class="material-symbols-rounded" title="Auto save">save</span>
+              </label>
+
+              <span id="button-open-spotify" title="Open in Spotify" class="material-symbols-rounded">share</span>
+
+              <div id="tracks-playlist-details"><div></div></div>
+            </div>
+
             <button id="button-reset-time">Reset</button>
             <button id="togglePlay">Toggle Play</button>
-            <input type="checkbox" id="autopilot" value="1"><label for="autopilot"> Autopilot</label>
+
+
           </div>
           <div id="tracks"></div>
         </div>

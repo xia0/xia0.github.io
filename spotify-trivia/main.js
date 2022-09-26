@@ -63,15 +63,15 @@ function onSpotifyWebPlaybackSDKReady() {
 // Your client id from your app in the spotify dashboard:
 // https://developer.spotify.com/dashboard/applications
 const client_id = '43a22aa24295448faec97a2636493a7d';
-//const redirect_uri = 'http://127.0.0.1/spotify-trivia/'; // Your redirect uri
-const redirect_uri = 'https://xia0.github.io/spotify-trivia/'; // Your redirect uri
+const redirect_uri = 'http://127.0.0.1/spotify-trivia/'; // Your redirect uri
+//const redirect_uri = 'https://xia0.github.io/spotify-trivia/'; // Your redirect uri
 
 // Restore tokens from localStorage
 let access_token = localStorage.getItem('access_token') || null;
 let refresh_token = localStorage.getItem('refresh_token') || null;
 let expires_at = localStorage.getItem('expires_at') || null;
 
-let default_end_time = 15*1000;
+let default_end_time = 30*1000;
 
 let has_opened_playlist = false;
 
@@ -84,7 +84,9 @@ var tracks_data = [];
 var timerSave;
 var timerPause;
 var timerPlay;
+var intervalProgress;
 
+let playStartTime = 0;
 let sliderDifference = 0;
 
 // Update token if current one is expired
@@ -175,6 +177,7 @@ $( document ).ready(function() {
     $('#tracks-container').animate({
       left: '-100%'
     });
+
   });
 
   $('#button-open-spotify').click(function() {
@@ -192,6 +195,10 @@ $( document ).ready(function() {
     });
   });
 
+  // Save when autosave is switched on
+  $("#autosave").change(function() {
+    saveDescription();
+  });
 
   // Close playlist on back button
   window.onhashchange = function() {
@@ -300,7 +307,8 @@ function exchangeToken(code) {
       processTokenResponse(data);
 
       // clear search query params in the url
-      window.history.replaceState({}, document.title, '/');
+      // TEST verify this stops fucking up the redirect
+      //window.history.replaceState({}, document.title, '/');
     })
     .catch(handleError);
 }
@@ -380,6 +388,8 @@ function getUserData() {
     }
   })
   .then((data) => {
+
+    console.log(data);
 
     // Get user's playlist if once we confirm we are logged in
     user_id = data.id;
@@ -500,7 +510,7 @@ function updatePlaylists() {
 
     let attributes_string = "";
     for (let j = 0; j < attributes.length; j++) {
-      attributes_string += '<span>' + attributes[j] + '</span>';
+      attributes_string += attributes[j];
     }
 
 
@@ -529,6 +539,7 @@ function updatePlaylists() {
   //$("#playlists").html(playlists_content);
 
   // open tracks upon clicking
+  // user opened a playlist
   $(".playlist-item-container").click(function(event) {
     selected_playlist_id = event.target.id.replace("playlist-", "");
     selected_playlist_index = $(this).children('.playlist-index').val();
@@ -546,9 +557,31 @@ function updatePlaylists() {
     );
 
     // Set playlist name
-    $('#playlist-details').html(
-      $('#' + event.target.id).html()
+    $('#tracks-playlist-title').text(
+      $('#' + event.target.id + ' .playlist-title').text()
     );
+    $('#tracks-playlist-byline').text(
+      $('#' + event.target.id + ' .playlist-byline').text()
+    );
+    $('#tracks-playlist-details > div').html(
+      $('#' + event.target.id + ' .playlist-details').html()
+    );
+
+    // Set the padding of the container depending on size of the header
+    /*
+    $('#tracks').css("padding-top", ($('#playlist-header').height() + 20) + 'px');
+    */
+
+
+    // Enable or disable autosave depending on if the user can write to the playlist
+    if (playlistData[selected_playlist_index].collaborative ||
+        playlistData[selected_playlist_index].owner.id == user_id
+    ) {
+      $("#autosave").prop('disabled', false);
+    }
+    else $("#autosave").prop('disabled', true);
+
+
 
     // Load data from description
     data = playlistData[$(this).index()].description.split(";");
@@ -616,6 +649,13 @@ function updateTracks(data) {
 
   for (let i = 0; i < tracks_data.length; i++) {
 
+    // Check if track can be played (i.e. make sure it's available)
+    /*
+    if (tracks_data[i].track.available_markets.length == 0) {
+      //continue;
+    }
+    */
+
     // load track metadata
     tracks_data[i].trivia_times = { start: 0, end: 0 }
 
@@ -647,7 +687,7 @@ function updateTracks(data) {
           <div class="track-text">\
             <div class="track-title">'+tracks_data[i].track.name+'</div>\
             <div class="track-artist">'+artists.join(", ")+'</div>\
-            <div class="track-time-description">Playing from <span class="time-desc-start"></span> for <span class="time-desc-duration"></span> seconds.</div>\
+            <div class="track-time-description"><span class="time-desc-start"></span> +<span class="time-desc-duration"></span>s</div>\
           </div>\
         </div>\
         <div class="track-item-controls">\
@@ -678,6 +718,9 @@ function updateTracks(data) {
         //$(this).siblings(".time-end").val(ui.values[1]);
         updateTimeDescriptions($(this).siblings('.track-index').val(), ui.values[0], ui.values[1]);
       },
+      create: function( event, ui ) {
+        $(this).append('<div class="play-progress-bar"></div>');
+      },
       start: function( event, ui ) {
         sliderDifference = ui.values[1] - ui.values[0];
       },
@@ -692,11 +735,6 @@ function updateTracks(data) {
 
   }
 
-
-  // also save if user types into textbox
-  $("input").change(function() {
-    saveTimes();
-  });
 
   /*
   $(".time-start").change(function() {
@@ -768,15 +806,11 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
   // Clear any existing pause timer
   clearTimeout(timerPause);
 
-
-
   let data = '{ "context_uri": "spotify:playlist:'+playlist_id+'", \
                 "offset": { "position": '+index+' }, \
                 "position_ms": '+start_position+' \
               }';
   //console.log(data);
-
-
 
   // Send API request to start playing
   $.ajax({
@@ -786,14 +820,49 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
       'Authorization' : 'Bearer ' + access_token
     },
     data: data,
+    failure: function (data) {
+
+    },
     success: function(data) {
       console.log("Playback started. Index " + index);
 
+      // Save the time track started playing
+      playStartTime = Date.now();
+
+      // Change style of played tracks so it's easier to keep track
       $('.track-item').eq(index).addClass('played');
 
       // Start a timer to pause it after the defined duration
-      if (duration > 0) timerPause = setTimeout(pauseTrack, duration);
+      if (duration > 0) timerPause = setTimeout(function() {
+        pauseTrack();
 
+        // Queue the next track if autopilot is on
+        if (index + 1 < $(".button-play-pause").length) {
+          console.log('total tracks: ' + $(".button-play-pause").length);
+
+          clearTimeout(timerPlay);
+          timerPlay = setTimeout(function() {
+            if ($("#autopilot").is(':checked')) {
+              $(".button-play-pause").eq(index+1).click();
+
+              $([document.documentElement, document.body]).animate({
+                scrollTop: $(".track-item").eq(index+1).offset().top - 40
+              }, 800);
+            }
+          }, 1000 * $("input:radio[name='pause-interval']:checked").val() )
+        }
+
+      }, duration);
+
+      // Start an interval to move progress bar
+      clearInterval(intervalProgress);
+      intervalProgress = setInterval(function() {
+        let pixelsPerTime = $(".slider").eq(index).width() / $(".slider").eq(index).slider( "option", "max" );
+        $(".play-progress-bar").eq(index).width( pixelsPerTime * (Date.now() - playStartTime ) );
+        $(".play-progress-bar").eq(index).css("left", pixelsPerTime * $(".slider").eq(index).slider( "values", 0 ) );
+      }, 100);
+
+      /*
       // Queue the next track if autopilot is on
       if (index + 1 < $(".button-play-pause").length) {
         console.log('total tracks: ' + $(".button-play-pause").length);
@@ -807,9 +876,11 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
               scrollTop: $(".track-item").eq(index+1).offset().top-20
             }, 800);
           }
-        }, duration + 4000)
-
+        }, duration + 1000 * $("input:radio[name='pause-interval']:checked").val() )
       }
+      */
+
+
 
     }
   });
@@ -817,6 +888,8 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
 
 function pauseTrack() {
   clearTimeout(timerPause);
+  clearInterval(intervalProgress);
+  console.log('clearing play timer and intervals');
 
   $.ajax({
     url: 'https://api.spotify.com/v1/me/player/pause',
@@ -841,6 +914,12 @@ function pauseTrack() {
 */
 function saveDescription(reset=false) {
   clearTimeout(timerSave); // clear any existing timer for this function
+
+  // Do nothing if autosave is not checked
+  if (!$("#autosave").is(':checked') || $('#autosave').prop('disabled')) {
+    return;
+  }
+
 
   let content_values = [];
 

@@ -68,6 +68,14 @@ body {
   background-color: #880044;
 }
 
+#tracks {
+  /*padding-top: 100px;*/
+}
+
+.playlist-item-container {
+  display: flex;
+}
+
 .playlist-item-container > div {
   pointer-events: none;
 }
@@ -85,11 +93,78 @@ body {
 }
 
 
+
+
 #tracks-container {
   position: absolute;
   top: 0; left: -100%;
   width: 100%;
   background-color: #FFEE88;
+}
+
+#playlist-header {
+  color: #ffffff;
+  padding: 10px;
+}
+
+.tracks-playlist-row {
+  display: flex;
+}
+
+#tracks-playlist-title {
+  font-size: 20px;
+}
+
+#tracks-playlist-menu {
+  margin-left: auto;
+  /*min-width: 100px;*/
+}
+
+#tracks-playlist-menu span {
+  font-size: 50px;
+  cursor: pointer;
+}
+
+#tracks-playlist-row2 input {
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#tracks-playlist-row2 input+label{
+  opacity: 0.6;
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 20px;
+}
+
+#tracks-playlist-row2 input:checked+label{
+  opacity: 1;
+}
+
+#tracks-playlist-row2 > input[type="checkbox"]:not(:checked)+label+span {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+#tracks-playlist-row2 input[type="checkbox"]:disabled+label {
+  display: none;
+}
+
+#tracks-playlist-details {
+  margin-left: auto;
+  white-space: nowrap;
+  position: relative;
+}
+
+#tracks-playlist-details > div {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+#tracks-playlist-details span {
+  font-size: 16px;
 }
 
 .track-item {
@@ -120,6 +195,10 @@ body {
   margin: 10px;
 }
 
+.track-item-controls {
+
+}
+
 .track-image > .material-symbols-rounded {
   font-size: 60px;
 }
@@ -136,7 +215,6 @@ body {
 }
 
 .track-text {
-  height: 60px;
   margin-left: 10px;
 }
 
@@ -151,5 +229,56 @@ body {
 
 
 .slider {
-  margin: 20px;
+  margin: 10px;
+}
+
+
+/* slider handle */
+.track-item-controls .ui-slider .ui-slider-handle {
+
+  /*
+  width: 0;
+  height: 0;
+  border-top: 0;
+  border-left: 0.6em solid transparent;
+  border-right: 0.6em solid transparent;
+  border-bottom: 1.0em solid #ffffff;
+
+  border-radius: 0;
+
+
+  background: none;
+  */
+
+  top: 0;
+  height: 100%;
+
+  background: none;
+  border: none;
+}
+
+
+.track-item-controls .ui-slider .ui-state-focus {
+  border-bottom-color: red;
+}
+
+.track-item-controls .ui-slider-range {
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.track-item-controls .ui-slider-horizontal {
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  overflow: hidden;
+}
+
+.play-progress-bar {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  width: 0;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.5);
 }
