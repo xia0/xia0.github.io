@@ -13,7 +13,7 @@ td:first-child {
 }
 
 
-#oauth, #refresh-button, #button-reset-time, #togglePlay {
+#oauth, #refresh-button, #button-reset-time, #playerTogglePlay, #webPlayerControls {
   display: none;
 }
 
@@ -296,7 +296,6 @@ body {
 }
 
 .track-item {
-
   padding: 4px;
 }
 
@@ -375,6 +374,10 @@ body {
   border: none;
 }
 
+.ui-slider-range {
+  min-width: 1px;
+}
+
 
 .track-item-controls .ui-slider .ui-state-focus {
   border-bottom-color: red;
@@ -398,5 +401,35 @@ body {
   pointer-events: none;
   width: 0;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(255, 255, 255, 0.3);
+
+  display: none;
+}
+
+.play-needle-container {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  left: 0;
+  height: 100%;
+}
+.play-needle {
+  position: absolute;
+  left: -2px;
+  width: 3px;
+  height: 100%;
+  background-color: #c1121f;
+}
+
+.track-loader {
+  z-index: 10;
+  width: 60px;
+  height: 60px;
+  text-align: center;
+  position: absolute;
+  background-color: rgba(0,0,0, 0.5);
+}
+
+.track-loader > .loader {
+  margin-top: 6px;
 }

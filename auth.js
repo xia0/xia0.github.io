@@ -192,6 +192,7 @@ function logout() {
 }
 
 function processTokenResponse(data) {
+  console.log('api: got token data');
   console.log(data);
 
   access_token = data.access_token;
@@ -229,6 +230,7 @@ function getUserData() {
   })
   .then((data) => {
 
+    console.log('api: got user data');
     console.log(data);
 
     // Get user's playlist if once we confirm we are logged in
@@ -237,13 +239,12 @@ function getUserData() {
     getPlaylists(true);
 
     // Display user details
-    //console.log(data);
     document.getElementById('login').style.display = 'none';
     document.getElementById('loggedin').style.display = 'unset';
     $("#main").innerHTML = userProfileTemplate(data);
 
     // Load the spotify player
-    console.log("Attempting to load SDK player");
+    console.log("sdk: attempting to load SDK player");
     //player.connect();
 
   })

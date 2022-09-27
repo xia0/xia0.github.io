@@ -10,10 +10,19 @@ var tracks_data = [];
 var timerSave;
 var timerPause;
 var timerPlay;
-var intervalProgress;
 
-let playStartTime = 0;
+
+// Keep track for progress bar
+var currentPlayingTrackIndex = -1;
+var currentPlayingTrackDuration = -1;
+var previousPlayerPauseState = true;
+//var intervalProgress;
+var intervalProgressNeedle;
+
+let playStartTime = 0; // Used to calculate position of progress bar
 let sliderDifference = 0;
+
+var playbackTransferred = false;
 
 $( document ).ready(function() {
   console.log( "ready!" );
@@ -41,6 +50,7 @@ $( document ).ready(function() {
 
   $('#button-close-playlist').click(function() {
     parent.location.hash = '';
+    getPlaylists(true);
 
     // Stop any currently playing tracks
     clearTimeout(timerPause);
@@ -114,18 +124,24 @@ function onSpotifyWebPlaybackSDKReady() {
 
   // Ready
   player.addListener('ready', ({ device_id }) => {
-      console.log('Ready with Device ID', device_id);
-      $.ajax({
-        url: 'https://api.spotify.com/v1/me/player',
-        type: 'PUT',
-        headers: {
-          'Authorization' : 'Bearer ' + access_token
-        },
-        data: '{"device_ids": ["'+device_id+'"]}',
-        success: function(data) {
-          console.log("Successfully transferred playback");
-        }
-      });
+    console.log('sdk: Ready with Device ID', device_id);
+
+    // Try to tranfer playback to this page
+    $.ajax({
+      url: 'https://api.spotify.com/v1/me/player',
+      type: 'PUT',
+      headers: {
+        'Authorization' : 'Bearer ' + access_token
+      },
+      data: '{"device_ids": ["'+device_id+'"]}',
+      success: function(data) {
+        console.log("api: Successfully transferred playback to web player");
+        playbackTransferred = true;
+        $('.button-play-pause').text('play_arrow');  // enable all the play buttons currently existing
+        $('.track-loader').hide();
+      }
+    });
+
   });
 
   // Not Ready
@@ -145,22 +161,90 @@ function onSpotifyWebPlaybackSDKReady() {
       console.error(message);
   });
 
-  document.getElementById('togglePlay').onclick = function() {
-    player.togglePlay();
+
+
+  // Monitor player state so we can get exact start and stop times
+  player.addListener('player_state_changed', ( state => {
+    //console.log("Web player state changed");
+    //console.log(state);
+
+    if (state.loading) return;  // Do not start progress bar if loading
+
+    // Save the pause state and do nothing if it has not changed
+    // This is because this will trigger multiple times and reset the progress bar
+    if (state.paused == previousPlayerPauseState) return;
+    else previousPlayerPauseState = state.paused;
+
+    // Start moving the progress bar etc when the track actually starts to play
+    if (!state.paused && currentPlayingTrackIndex >= 0) {  // Track has started playing
+
+      $('.track-loader').hide(); // hide all loading spinners
+
+      // Start an interval to keep track of player's position
+      clearInterval(intervalProgressNeedle);
+      intervalProgressNeedle = setInterval(function() {
+        player.getCurrentState().then(state => {
+
+          // Remove the interval if not in a valid playing state
+          if (!state || currentPlayingTrackIndex < 0 || state.paused) {
+            clearInterval(intervalProgressNeedle);
+            return;
+          }
+
+          // Move the needle element
+          $('.play-needle-container').eq(currentPlayingTrackIndex).css('left', (state.position/state.duration*100)+'%');
+
+          // Check if playback is past the defined limit
+          if ( state.position >= $(".slider").eq(currentPlayingTrackIndex).slider( "values", 1 ) ) {
+            // Queue the next track
+            if ($("#autopilot").is(':checked')) queueTrack(currentPlayingTrackIndex+1);
+            pauseTrack();
+          }
+
+        });
+      }, 100);
+
+      // Change style of played tracks so it's easier to keep track
+      $('.track-item').eq(currentPlayingTrackIndex).addClass('played');
+
+    }
+    else currentPlayingTrackIndex = -1; // If paused, unset the currently playing track
+
+  }));
+
+
+
+  document.getElementById('playerTogglePlay').onclick = function() {
+    player.playerTogglePlay();
   };
 
-  /*
-  function playerPause() {
-    player.pause().then(() => {
-      console.log('Paused!');
-    });
-  }*/
-
-
+  $('#playerPause').click(function() {
+    player.pause();
+  });
 
   player.connect();
 }
 
+/**
+* queue the track at provided index after waiting time the user has selected
+*/
+function queueTrack(index) {
+  if (index >= $(".button-play-pause").length) return false; // Check if the provided index is within number of tracks
+
+  clearTimeout(timerPlay);
+  timerPlay = setTimeout(function() {
+    if ($("#autopilot").is(':checked')) { // only play if autoplay is still selected
+      $(".button-play-pause").eq(index).click();
+
+      // Scroll to the item
+      //if (!$(".track-item").eq(autoPlayNextIndex).isInViewport()) { // but only if not in current viewport
+        $([document.documentElement, document.body]).animate({
+          scrollTop: $(".track-item").eq(index).offset().top - 40
+        }, 800);
+      //}
+    }
+  }, 1000 * $("input:radio[name='pause-interval']:checked").val() ) // How long to pause between tracks
+}
 
 /** Recursive function to get all the user's playlists and filter for owned ones only
 */
@@ -181,26 +265,12 @@ function getPlaylists(update = false, offset = 0, limit = 50) {
       }
     })
     .then((data) => {
-      //console.log(data.items);
       playlistData = playlistData.concat(data.items);
-      //document.getElementById('login').style.display = 'none';
-      //document.getElementById('loggedin').style.display = 'unset';
-      //mainPlaceholder.innerHTML = userProfileTemplate(data);
 
       // resursive function to ensure all playlists are grabbed
       if (data.items.length == data.limit) getPlaylists(update, data.offset + data.limit, data.limit);
       else { // OK we got all the user's playlists
-
-        // remove all playlists not owned by current user
-        /*
-        for (let i = 0; i < playlistData.length; i++) {
-          if (playlistData[i].owner.id != user_id) {
-            playlistData.splice(i, 1);
-            i--;
-          }
-        }
-        */
-
+        console.log('api: got user playlists');
         console.log(playlistData);
         if (update) updatePlaylists();
       }
@@ -208,7 +278,6 @@ function getPlaylists(update = false, offset = 0, limit = 50) {
     })
     .catch((error) => {
       console.error(error);
-      mainPlaceholder.innerHTML = errorTemplate(error.error);
     });
 }
 
@@ -228,11 +297,6 @@ function updatePlaylists() {
 
     if (playlistData[i].owner.id == user_id) attributes.push('<!--<span class="material-symbols-rounded" title="Owner">edit</span>-->');
     else if (!playlistData[i].collaborative) attributes.push('<span class="material-symbols-rounded" title="Read only">edit_off</span>');
-
-    /*
-    if (!playlistData[i].public) attributes.push("Public");
-    else attributes.push("Private");
-    */
 
     let attributes_string = "";
     for (let j = 0; j < attributes.length; j++) {
@@ -272,7 +336,7 @@ function updatePlaylists() {
   $(".playlist-item-container").click(function(event) {
     selected_playlist_id = event.target.id.replace("playlist-", "").replace("discover-");
     selected_playlist_index = $(this).children('.playlist-index').val();
-    console.log(selected_playlist_index + '-' + selected_playlist_id);
+    console.log('local: attempting to get playlist with index ' + selected_playlist_index + ' - id: ' + selected_playlist_id);
 
     if (has_opened_playlist) $("#tracks").html(""); // Check to make sure a playlist wasn't loaded on refresh
     else has_opened_playlist = true;
@@ -296,11 +360,6 @@ function updatePlaylists() {
       $('#' + event.target.id + ' .playlist-details').html()
     );
 
-    // Set the padding of the container depending on size of the header
-    /*
-    $('#tracks').css("padding-top", ($('#playlist-header').height() + 20) + 'px');
-    */
-
 
     // Enable or disable autosave depending on if the user can write to the playlist
     if (playlistData[selected_playlist_index].collaborative ||
@@ -314,21 +373,6 @@ function updatePlaylists() {
 
     // Load data from description
     selected_playlist_data = parseDesc( playlistData[$(this).index()].description );
-
-    /*
-    data = playlistData[$(this).index()].description.split(";");
-    selected_playlist_data = [];
-    for (let i = 0; i < data.length; i++) {
-      let times = data[i].split(",");
-      if (times.length < 2) break; // probably invalid data - leave data blank
-      if (isNaN(parseInt(times[0])) || isNaN(parseInt(times[1]))) break; // comma exists but not int values
-      selected_playlist_data[i] = [ parseInt(times[0]), parseInt(times[1]) ];
-    }
-    */
-    //console.log(selected_playlist_data);
-
-    // Load tracks from playlist
-
     getTracks(selected_playlist_id);
 
 
@@ -336,7 +380,7 @@ function updatePlaylists() {
   });
 
   // If hash attribute already exists in URL, open up that playlist
-  if ($(location).attr('hash') && !has_opened_playlist) {
+  if ($(location).attr('hash')) {
     $( $(location).attr('hash').replace("#", "#playlist-") ).click();
   }
 }
@@ -388,6 +432,7 @@ function getTracks(playlist) {
       'Authorization' : 'Bearer ' + access_token
     },
     success: function(data) {
+      console.log('api: selected playlist loaded');
       console.log(data);
       updateTracks(data);
 
@@ -419,6 +464,7 @@ function updateTracks(data) {
   for (let i = 0; i < tracks_data.length; i++) {
 
     // Check if track can be played (i.e. make sure it's available)
+    // TODO - currently crashes on unavailable tracks
     /*
     if (tracks_data[i].track.available_markets.length == 0) {
       //continue;
@@ -446,17 +492,23 @@ function updateTracks(data) {
       artists.push(tracks_data[i].track.artists[j].name);
     }
 
+    // Track item template
     $("#tracks").append('\
       <div class="track-item" id="'+tracks_data[i].track.id+'" tabindex="'+i+'">\
         <div class="track-item-heading">\
           <div class="track-image" style="background-image:url('+tracks_data[i].track.album.images[tracks_data[i].track.album.images.length-1].url+')">\
-            <span id="play-button-'+i+'" class="button-play-pause material-symbols-rounded">play_arrow</span>\
+            <div class="track-loader"><span class="loader"></span></div>\
+            <span id="play-button-'+i+'" class="button-play-pause material-symbols-rounded"></span>\
           </div>\
           <div class="track-index">'+(i+1)+'</div>\
           <div class="track-text">\
             <div class="track-title">'+tracks_data[i].track.name+'</div>\
             <div class="track-artist">'+artists.join(", ")+'</div>\
-            <div class="track-time-description"><span class="material-symbols-rounded">not_started</span><span class="time-desc-start"></span> <span class="material-symbols-rounded">timer</span><span class="time-desc-duration"></span>s</div>\
+            <div class="track-time-description">\
+              <span class="material-symbols-rounded">not_started</span><span class="time-desc-start"></span>\
+              <span class="time-desc-duration-container"><span class="material-symbols-rounded">timer</span><span class="time-desc-duration"></span>s</span>\
+              <span class="time-desc-end-container"><span class="material-symbols-rounded">stop_circle</span><span class="time-desc-end"></span>\
+            </div>\
           </div>\
         </div>\
         <div class="track-item-controls">\
@@ -481,17 +533,14 @@ function updateTracks(data) {
       values: [ tracks_data[i].trivia_times.start, tracks_data[i].trivia_times.end ],
       step: 100,
       disabled: true,
+      create: function( event, ui ) {
+        $(this).append('<div class="play-needle-container"><div class="play-needle"></div></div>');
+      },
       slide: function( event, ui ) {
-        if (ui.handleIndex == 0) {  // Keep interval the same when dragging left slider
-          //$(this).siblings(".time-start").val(ui.values[0]);
+        if (ui.handleIndex == 0 && $('.time-desc-duration-container').eq(i).is(":visible") ) {  // Keep interval the same when dragging left slider
           $(this).closest('.slider').slider('values',1,ui.values[0] + sliderDifference);
         }
-        //$(this).siblings(".time-end").val(ui.values[1]);
-        updateTimeDescriptions($(this).siblings('.track-index').val(), ui.values[0], ui.values[1]);
-        //updateProgressBar( $(this).siblings('.track-index').val() );
-      },
-      create: function( event, ui ) {
-        $(this).append('<div class="play-progress-bar"></div>');
+        updateTimeDescriptions(i, ui.values[0], ui.values[1]);
       },
       start: function( event, ui ) {
         sliderDifference = ui.values[1] - ui.values[0];
@@ -508,56 +557,56 @@ function updateTracks(data) {
     });
 
 
+
+
     $('.track-item').last().focus(function(event) {
       $('.slider').slider("disable") // disable every other slider first
       $(this).find('.slider').slider("enable");
     });
+  } // end for loop
 
+  // If playback has already been transferred, remove the disabled class
+  if (playbackTransferred) $('.button-play-pause').text('play_arrow');
+  if (playbackTransferred) $('.track-loader').hide();
 
-  }
+  // Toggle slider interact by duration or by end time
+  $('.time-desc-end-container').click(function() {
+    $('.time-desc-end-container').hide();
+    $('.time-desc-duration-container').show();
+  }).hide(); // this is hidden by default
 
-
-  /*
-  $(".time-start").change(function() {
-    $(this).siblings(".slider").slider( "values", 0, $(this).val() );
+  $('.time-desc-duration-container').click(function() {
+    $('.time-desc-duration-container').hide();
+    $('.time-desc-end-container').show();
   });
-
-  $(".time-end").change(function() {
-    $(this).siblings(".slider").slider( "values", 1, $(this).val() );
-  });
-  */
-
-
-  console.log(tracks_data);
 
 
   // Individual play button
   $(".button-play-pause").click(function(event) {
 
-    //selected_track_id = event.target.id;
-    //console.log(selected_track_id);
-    //playTrack(selected_track_id);
-    //console.log(event.target.id.replace("play-button-", ""));
+    clearTimeout(timerPause);
+    clearTimeout(timerPlay);
+    clearInterval(intervalProgressNeedle);
+    //clearInterval(intervalProgress);
+
+    previousPlayerPauseState = true; // Reset pause state for progress bar updates
 
     let index = parseInt(event.target.id.replace("play-button-", ""));
     let startTime = $(".slider").eq(index).slider( "values", 0 );
     let endTime = $(".slider").eq(index).slider( "values", 1 );
 
-    console.log('media button clicked on index ' + index);
-    console.log('existing status ' + $(this).text());
-    if ($(this).text() == 'play_arrow') {
+    console.log('local: media button clicked on index ' + index + ' - existing status ' + $(this).text());
+
+    if ($(this).text() == 'play_arrow') { // play
       playTrack(selected_playlist_id, index, startTime, endTime-startTime);
       $(this).text('stop');
+      $(this).siblings('.track-loader').show();
     }
-    else if ($(this).text() == 'stop') {
-      clearTimeout(timerPause);
-      clearTimeout(timerPlay);
+    else if ($(this).text() == 'stop') { // pause
       pauseTrack();
     }
 
   });
-
-
 }
 
 /**
@@ -566,16 +615,18 @@ function updateTracks(data) {
 function updateTimeDescriptions(index, start, end) {
 
   let date = new Date(start);
-  let timeString = date.toISOString().substring(11, 22).replace("00:", "");
+  $('.time-desc-start').eq(index).text( date.toISOString().substring(11, 22).replace("00:", "") );
 
-  $('.time-desc-start').eq(index).text( timeString );
+  date.setTime(end);
+  $('.time-desc-end').eq(index).text( date.toISOString().substring(11, 22).replace("00:", "") );
+
   $('.time-desc-duration').eq(index).text( (end-start)/1000 );
 }
 
 /** Play track from selectd playlist
 */
 function playTrack(playlist_id, index, start_position = 0, duration = 0) {
-  console.log('playing track ' + index + ' of playlist ' + playlist_id + ' starting at ' + start_position + ' for ' + duration + ' duration');
+  console.log('local: playing track ' + index + ' of playlist ' + playlist_id + ' starting at ' + start_position + ' for ' + duration + ' duration');
 
   // Reset all buttons back to play
   $(".button-play-pause").text('play_arrow');
@@ -583,11 +634,16 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
   // Clear any existing pause timer
   clearTimeout(timerPause);
 
+
+
+  // Save which index was clicked and the intended duration
+  currentPlayingTrackIndex = index;
+  currentPlayingTrackDuration = duration;
+
   let data = '{ "context_uri": "spotify:playlist:'+playlist_id+'", \
                 "offset": { "position": '+index+' }, \
                 "position_ms": '+start_position+' \
               }';
-  //console.log(data);
 
   // Send API request to start playing
   $.ajax({
@@ -597,81 +653,80 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
       'Authorization' : 'Bearer ' + access_token
     },
     data: data,
-    failure: function (data) {
-
-    },
-    success: function(data) {
-      console.log("Playback started. Index " + index);
-
-      // Save the time track started playing
-      playStartTime = Date.now();
-
-      // Change style of played tracks so it's easier to keep track
-      $('.track-item').eq(index).addClass('played');
-
-      // Start a timer to pause it after the defined duration
-      if (duration > 0) timerPause = setTimeout(function() {
-        pauseTrack();
-
-        // Queue the next track if autopilot is on
-        if (index + 1 < $(".button-play-pause").length) {
-          console.log('total tracks: ' + $(".button-play-pause").length);
-
-          clearTimeout(timerPlay);
-          timerPlay = setTimeout(function() {
-            if ($("#autopilot").is(':checked')) {
-              $(".button-play-pause").eq(index+1).click();
-
-              $([document.documentElement, document.body]).animate({
-                scrollTop: $(".track-item").eq(index+1).offset().top - 40
-              }, 800);
-            }
-          }, 1000 * $("input:radio[name='pause-interval']:checked").val() )
-        }
-
-      }, duration);
-
-      // Start an interval to move progress bar
-      clearInterval(intervalProgress);
-      intervalProgress = setInterval(function() {
-        updateProgressBar(index);
-      }, 100);
-
-      /*
-      // Queue the next track if autopilot is on
-      if (index + 1 < $(".button-play-pause").length) {
-        console.log('total tracks: ' + $(".button-play-pause").length);
-
-        clearTimeout(timerPlay);
-        timerPlay = setTimeout(function() {
-          if ($("#autopilot").is(':checked')) {
-            $(".button-play-pause").eq(index+1).click();
-
-            $([document.documentElement, document.body]).animate({
-              scrollTop: $(".track-item").eq(index+1).offset().top-20
-            }, 800);
-          }
-        }, duration + 1000 * $("input:radio[name='pause-interval']:checked").val() )
-      }
-      */
-
-
-
+    success: function() {
+      console.log("api: successful request for playback");
     }
   });
 }
 
+
+/*
+function pauseAfterDuration(duration, autoPlayNextIndex = -1) {
+  if (duration <= 0) return false;
+
+  clearTimeout(timerPause);
+  timerPause = setTimeout(function() {
+    pauseTrack();
+
+    // Queue the next track if autopilot is on
+    if (autoPlayNextIndex >= 0 && autoPlayNextIndex < $(".button-play-pause").length) { // Check if the provided index is within number of tracks
+      console.log('total tracks: ' + $(".button-play-pause").length);
+
+      clearTimeout(timerPlay);
+      timerPlay = setTimeout(function() {
+        if ($("#autopilot").is(':checked')) {
+          $(".button-play-pause").eq(autoPlayNextIndex).click();
+
+          // Scroll to the item
+          //if (!$(".track-item").eq(autoPlayNextIndex).isInViewport()) { // but only if not in current viewport
+            $([document.documentElement, document.body]).animate({
+              scrollTop: $(".track-item").eq(autoPlayNextIndex).offset().top - 40
+            }, 800);
+          //}
+
+        }
+      }, 1000 * $("input:radio[name='pause-interval']:checked").val() ) // How long to pause between tracks
+    }
+
+  }, duration);
+}
+*/
+
+/*
+// Start moving progress bar along its track
+function startProgressBar(index) {
+  clearInterval(intervalProgress);
+  intervalProgress = setInterval(function() {
+    updateProgressBar(index);
+  }, 100);
+}
+*/
+
+/*
 function updateProgressBar(index) {
   let pixelsPerTime = $(".slider").eq(index).width() / $(".slider").eq(index).slider( "option", "max" );
   $(".play-progress-bar").eq(index).width( pixelsPerTime * (Date.now() - playStartTime ) );
   $(".play-progress-bar").eq(index).css("left", pixelsPerTime * $(".slider").eq(index).slider( "values", 0 ) );
 }
+*/
 
 function pauseTrack() {
-  clearTimeout(timerPause);
-  clearInterval(intervalProgress);
-  console.log('clearing play timer and intervals');
+  console.log('local: Pausing web player');
 
+  currentPlayingTrackIndex = -1; // Reset current track
+  currentPlayingTrackDuration = -1;
+
+  clearTimeout(timerPause);
+  clearInterval(intervalProgressNeedle);  // Stop the progress bar
+
+
+  // Reset all buttons back to play
+  $(".button-play-pause").text('play_arrow');
+
+  $('#playerPause').click();
+  return;
+
+  /*
   $.ajax({
     url: 'https://api.spotify.com/v1/me/player/pause',
     type: 'PUT',
@@ -685,9 +740,10 @@ function pauseTrack() {
       $(".button-play-pause").text('play_arrow');
     }
   });
+  */
 
   //playerPause();
-  //$("#togglePlay").click();
+  //$("#playerTogglePlay").click();
 }
 
 /** Save string to playlist's description
@@ -719,8 +775,8 @@ function saveDescription(reset=false) {
     },
     data: data,
     success: function(data) {
-      console.log('Saved times');
-      getPlaylists(true);
+      console.log('api: saved times to playlist '+selected_playlist_id+' description');
+      //getPlaylists(true);
     }
   });
 
