@@ -13,7 +13,10 @@
     <script src="jquery-ui-1.13.2/jquery-ui.js"></script>
     <script src="jquery.ui.touch-punch.min.js"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
+
     <script src="main.js"></script>
+    <script src="auth.js"></script>
+    <script src="discover.js"></script>
 
      <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
@@ -55,7 +58,7 @@
             <div id="header-text">
               <div id="display-name"></div>
               <div id="header-menu">
-                discover &bull; help &bull;
+                <span id="button-discover">discover</span> &bull; help &bull;
                 <span id="logout-button">logout</button>
               </div>
             </div>
@@ -69,6 +72,8 @@
             <div id="filter-clear"><span class="material-symbols-rounded">cancel</span></div>
           </div>
 
+
+          <div id="discover-playlists"></div>
           <div id="playlists"></div>
         </div>
 
@@ -115,6 +120,8 @@
           </div>
           <div id="tracks"></div>
         </div>
+
+
 
 
 

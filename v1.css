@@ -161,6 +161,15 @@ body {
 .playlist-title {
   font-size: 20px;
 }
+.playlist-duration span {
+  position: relative;
+  top: 2px;
+  font-size: 15px;
+}
+
+.playlist-discover {
+  background-color: #06d6a0;
+}
 
 
 /* tracks screen */
@@ -324,6 +333,7 @@ body {
 
 .track-text {
   margin-left: 10px;
+  flex-grow: 1;
 }
 
 .track-title {
