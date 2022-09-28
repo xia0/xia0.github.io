@@ -45,6 +45,10 @@ body {
   background-color: #221e22;
 }
 
+a {
+  color: #fff;
+}
+
 #playlist-container, #tracks-container {
   /*width: 600px;*/
 }
@@ -61,8 +65,9 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-
-
+}
+#loading-container .loader {
+  margin-bottom: 20%;
 }
 
 #header, #filter-container {
@@ -416,7 +421,7 @@ body {
 .play-needle {
   position: absolute;
   left: -2px;
-  width: 3px;
+  width: 2px;
   height: 100%;
   background-color: #c1121f;
 }

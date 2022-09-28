@@ -1,5 +1,5 @@
-let default_end_time = 25*1000;
-let has_opened_playlist = false;
+let default_end_time = 30*1000;
+let track_limit = 35;
 
 var playlistData = [];
 var user_id = "";
@@ -11,7 +11,6 @@ var timerSave;
 var timerPause;
 var timerPlay;
 
-
 // Keep track for progress bar
 var currentPlayingTrackIndex = -1;
 var currentPlayingTrackDuration = -1;
@@ -19,19 +18,38 @@ var previousPlayerPauseState = true;
 //var intervalProgress;
 var intervalProgressNeedle;
 
-let playStartTime = 0; // Used to calculate position of progress bar
+//let playStartTime = 0; // Used to calculate position of progress bar
 let sliderDifference = 0;
 
+// flags
+let has_opened_playlist = false;
 var playbackTransferred = false;
 
 $( document ).ready(function() {
   console.log( "ready!" );
 
 
-  // Stop any autoplay timer when autopilot checkbox is manipulated
+  // Save control settings to localdata
+  if (localStorage.getItem('autoplay_mode') == 1) $('#autopilot').prop('checked', true);
   $("#autopilot").click(function(){
-    //pauseTrack();
+    if ($("#autopilot").is(':checked')) localStorage.setItem('autoplay_mode', 1);
+    else localStorage.setItem('autoplay_mode', 0);
   });
+
+  if (localStorage.getItem('autosave_mode') == 1 ||
+      localStorage.getItem('autosave_mode') === null) $('#autosave').prop('checked', true);
+  $("#autosave").click(function(){
+    if ($("#autosave").is(':checked')) localStorage.setItem('autosave_mode', 1);
+    else localStorage.setItem('autosave_mode', 0);
+  });
+
+  if (localStorage.getItem('autoplay_interval') > 0) $("input[name=pause-interval][value=" + localStorage.getItem('autoplay_interval') + "]").prop('checked', true);
+  $(".pause-interval-radio").click(function(){
+    localStorage.setItem('autoplay_interval', $(this).val());
+  });
+
+
+
 
   // Reset start and end times when reset button is clicked
   $("#button-reset-time").click(function(){
@@ -49,6 +67,15 @@ $( document ).ready(function() {
   });
 
   $('#button-close-playlist').click(function() {
+
+    if (selected_playlist_index < 0) return; // do nothing if no playlist currently selected
+
+    console.log('local: close playlist button clicked');
+
+    selected_playlist_id = "";
+    selected_playlist_index = -1;
+    selected_playlist_data = [];
+
     parent.location.hash = '';
     getPlaylists(true);
 
@@ -83,7 +110,6 @@ $( document ).ready(function() {
 
   $('#filter-clear').click(function() {
     $('#filter').val("").trigger('keyup');
-
   })
 
   // Save when autosave is switched on
@@ -250,35 +276,39 @@ function queueTrack(index) {
 */
 function getPlaylists(update = false, offset = 0, limit = 50) {
 
-  if (offset == 0) playlistData = []; // Reset the array if starting from 0
+  $('#loading-container').fadeIn();
 
   fetch('https://api.spotify.com/v1/me/playlists?limit=' + limit + '&offset=' + offset, {
     headers: {
       Authorization: 'Bearer ' + access_token,
     },
   })
-    .then(async (response) => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw await response.json();
-      }
-    })
-    .then((data) => {
-      playlistData = playlistData.concat(data.items);
+  .then(async (response) => {
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw await response.json();
+    }
+  })
+  .then((data) => {
+    //console.log(data);
 
-      // resursive function to ensure all playlists are grabbed
-      if (data.items.length == data.limit) getPlaylists(update, data.offset + data.limit, data.limit);
-      else { // OK we got all the user's playlists
-        console.log('api: got user playlists');
-        console.log(playlistData);
-        if (update) updatePlaylists();
-      }
+    if (offset == 0) playlistData = []; // Reset the array if starting from 0
+    playlistData = playlistData.concat(data.items);
 
-    })
-    .catch((error) => {
-      console.error(error);
-    });
+    // resursive function to ensure all playlists are grabbed
+    if (playlistData.length < data.total) getPlaylists(update, data.offset + data.limit, data.limit);
+    else { // OK we got all the user's playlists
+      $('#loading-container').fadeOut();
+      console.log('api: got user playlists');
+      console.log(playlistData);
+      if (update) updatePlaylists();
+    }
+
+  })
+  .catch((error) => {
+    console.error(error);
+  });
 }
 
 /** Generate a formatted list of playlists
@@ -289,7 +319,6 @@ function updatePlaylists() {
 
   let playlists_content = "";
   for (let i = 0; i < playlistData.length; i++) {
-
 
     // add details regarding permissions
     let attributes = [];
@@ -351,10 +380,12 @@ function updatePlaylists() {
 
     // Set playlist name
     $('#tracks-playlist-title').text(
-      $('#' + event.target.id + ' .playlist-title').text()
+      //$('#' + event.target.id + ' .playlist-title span').text()
+      playlistData[selected_playlist_index].name
     );
-    $('#tracks-playlist-byline').text(
-      $('#' + event.target.id + ' .playlist-byline').text()
+    $('#tracks-playlist-byline').html(
+      //$('#' + event.target.id + ' .playlist-byline').text()
+      'by <a href="'+playlistData[selected_playlist_index].owner.external_urls.spotify+'" target="_blank">' + playlistData[selected_playlist_index].owner.display_name + '</a>'
     );
     $('#tracks-playlist-details > div').html(
       $('#' + event.target.id + ' .playlist-details').html()
@@ -369,12 +400,9 @@ function updatePlaylists() {
     }
     else $("#autosave").prop('disabled', true);
 
-
-
     // Load data from description
     selected_playlist_data = parseDesc( playlistData[$(this).index()].description );
     getTracks(selected_playlist_id);
-
 
     $(location).attr('hash', event.target.id.replace("playlist-", "")); // Set the location hash to this id
   });
@@ -383,6 +411,9 @@ function updatePlaylists() {
   if ($(location).attr('hash')) {
     $( $(location).attr('hash').replace("#", "#playlist-") ).click();
   }
+
+  // Reapply filter
+  $('#filter').trigger('keyup');
 }
 
 /**
@@ -397,7 +428,7 @@ function parseDesc(input) {
     let times = data[i].split(",");
     if (times.length < 2) return false; // probably invalid data - leave data blank
     if (isNaN(parseInt(times[0])) || isNaN(parseInt(times[1]))) return false; // comma exists but not int values
-    descData[i] = [ parseInt(times[0]), parseInt(times[1]) ];
+    descData[i] = [ parseFloat(times[0])*100, parseFloat(times[1])*100 ];
   }
   return descData;
 }
@@ -426,7 +457,7 @@ function msToTimestamp(ms) {
 */
 function getTracks(playlist) {
   $.ajax({
-    url: 'https://api.spotify.com/v1/playlists/'+playlist+'/tracks?limit=20',
+    url: 'https://api.spotify.com/v1/playlists/'+playlist+'/tracks?limit=' + track_limit,
     type: 'GET',
     headers: {
       'Authorization' : 'Bearer ' + access_token
@@ -756,15 +787,16 @@ function saveDescription(reset=false) {
     return;
   }
 
-
   let content_values = [];
 
   if (!reset) {
     $( ".slider" ).each(function() {
-      content_values.push( $(this).slider( "values", 0 ) + ',' + $(this).slider( "values", 1 ) );
+      content_values.push( $(this).slider( "values", 0 )/100 + ',' + $(this).slider( "values", 1 )/100 );
     });
   }
   let data = '{ "description": "'+content_values.join(";")+'" }';
+
+  console.log('local: prepared data to save to playlist description');
   console.log(data);
 
   $.ajax({
