@@ -63,8 +63,9 @@ function getFeaturedPlaylist(playlist_id) {
         durationString += '<span class="material-symbols-rounded">timer</span>'+msToTimestamp(totalPlayTimeFromDesc(descData));
       }
 
+      // Append this item to playlists
       $("#discover-playlists").append(
-        '<div class="playlist-discover playlist-item-container" id="discover-playlist-'+data.id+'">\
+        '<div style="display:none;" class="playlist-discover playlist-item-container" id="discover-playlist-'+data.id+'">\
           <div class="playlist-image"></div>\
           <div class="playlist-text">\
             <div class="playlist-title"><span>'+data.name+'</span></div>\
@@ -73,6 +74,9 @@ function getFeaturedPlaylist(playlist_id) {
           </div>\
         </div>'
       );
+      // animate its appearance
+      $('#discover-playlist-' + data.id).slideDown();
+
       // Replace generic image if cover art exists
       if (data.images.length > 0) {
         $('#discover-playlist-' + data.id + ' > .playlist-image').css('background-image', 'url('+data.images[data.images.length-1].url+')');

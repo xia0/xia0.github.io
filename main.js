@@ -13,12 +13,10 @@ var timerPlay;
 
 // Keep track for progress bar
 var currentPlayingTrackIndex = -1;
-var currentPlayingTrackDuration = -1;
+//var currentPlayingTrackDuration = -1;
 var previousPlayerPauseState = true;
-//var intervalProgress;
 var intervalProgressNeedle;
 
-//let playStartTime = 0; // Used to calculate position of progress bar
 let sliderDifference = 0;
 
 // flags
@@ -669,7 +667,7 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
 
   // Save which index was clicked and the intended duration
   currentPlayingTrackIndex = index;
-  currentPlayingTrackDuration = duration;
+  //currentPlayingTrackDuration = duration;
 
   let data = '{ "context_uri": "spotify:playlist:'+playlist_id+'", \
                 "offset": { "position": '+index+' }, \
@@ -745,7 +743,7 @@ function pauseTrack() {
   console.log('local: Pausing web player');
 
   currentPlayingTrackIndex = -1; // Reset current track
-  currentPlayingTrackDuration = -1;
+  //currentPlayingTrackDuration = -1;
 
   clearTimeout(timerPause);
   clearInterval(intervalProgressNeedle);  // Stop the progress bar
