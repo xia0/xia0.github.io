@@ -172,13 +172,13 @@ function uptakeTokenIfExpired() {
 
     let date = Date.now();
     if (expires_at < Date.now()) {
-      console.log('local: access token expired. trying to refresh.');
+      //console.log('local: access token expired. trying to refresh.');
       refreshToken();
       // block execution until token becomes valid
       //do {
         //
       //} while (expires_at < Date.now());
-      console.log('local: got new access token');
+      //console.log('local: got new access token');
     }
   }
 }
