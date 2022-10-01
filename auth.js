@@ -3,7 +3,10 @@
 // https://developer.spotify.com/dashboard/applications
 const client_id = '43a22aa24295448faec97a2636493a7d';
 //const redirect_uri = 'http://127.0.0.1/spotify-trivia/'; // Your redirect uri
-const redirect_uri = 'https://xia0.github.io/'; // Your redirect uri
+//const redirect_uri = 'http://127.0.0.1/'; // Your redirect uri
+//const redirect_uri = 'https://xia0.github.io/'; // Your redirect uri
+const redirect_uri = window.location.href.split(/[?#]/)[0];
+console.log('auth: redirect uri ' + redirect_uri);
 
 // Restore tokens from localStorage
 let access_token = localStorage.getItem('access_token') || null;
@@ -11,12 +14,14 @@ let refresh_token = localStorage.getItem('refresh_token') || null;
 let expires_at = localStorage.getItem('expires_at') || null;
 
 // Update token if current one is expired
-if (expires_at < Date.now()) {
-  refreshToken();
-}
-else { // Otherwise, set a timeout to fetch new token before expiry
-  let interval = expires_at - Date.now() - 60*1000;
-  setTimeout(refreshToken, interval);
+if (access_token != null) {
+  if (expires_at < Date.now()) {
+    refreshToken();
+  }
+  else { // Otherwise, set a timeout to fetch new token before expiry
+    let interval = expires_at - Date.now() - 60*1000;
+    setTimeout(refreshToken, interval);
+  }
 }
 
 
@@ -244,7 +249,7 @@ function getUserData() {
     $("#main").innerHTML = userProfileTemplate(data);
 
     // Load the spotify player
-    console.log("sdk: attempting to load SDK player");
+    //console.log("sdk: attempting to load SDK player");
     //player.connect();
 
   })

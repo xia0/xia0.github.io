@@ -138,7 +138,12 @@ function saveTimes(delay=2000) {
 */
 function onSpotifyWebPlaybackSDKReady() {
 
-  if (access_token == null) return;
+  if (access_token == null) {
+    // No access token yet, retry
+    console.log('sdk: waiting for access token...');
+    setTimeout(onSpotifyWebPlaybackSDKReady, 5000);
+    return;
+  }
 
   const player = new Spotify.Player({
       name: 'Music Trivia Tool',
