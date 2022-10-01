@@ -225,7 +225,7 @@ function processTokenResponse(data) {
   });
 
   // load data of logged in user
-  //getUserData();
+  getUserData();
 }
 
 function getUserData() {
