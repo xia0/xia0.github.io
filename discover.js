@@ -98,6 +98,7 @@ function getFeaturedPlaylist(playlist_id) {
 * Adds a playlist with provided id to user's library then opens it
 */
 function addPlaylistToLibrary(playlist_id) {
+  console.log('local: attempting to add playlist with id ' + playlist_id);
   $.ajax({
     url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/followers',
     type: 'PUT',

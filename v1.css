@@ -246,6 +246,11 @@ a {
   pointer-events: none;
 }
 
+#button-open-spotify,
+#button-open-copy {
+  margin-right: 10px;
+}
+
 #tracks-playlist-row2 input+label{
   opacity: 0.6;
   font-weight: bold;

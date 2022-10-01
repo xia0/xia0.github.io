@@ -13,16 +13,7 @@ let access_token = localStorage.getItem('access_token') || null;
 let refresh_token = localStorage.getItem('refresh_token') || null;
 let expires_at = localStorage.getItem('expires_at') || null;
 
-// Update token if current one is expired
-if (access_token != null) {
-  if (expires_at < Date.now()) {
-    refreshToken();
-  }
-  else { // Otherwise, set a timeout to fetch new token before expiry
-    let interval = expires_at - Date.now() - 60*1000;
-    setTimeout(refreshToken, interval);
-  }
-}
+uptakeTokenIfExpired();
 
 
 $( document ).ready(function() {
@@ -175,6 +166,23 @@ function refreshToken() {
   .catch(handleError);
 }
 
+function uptakeTokenIfExpired() {
+  // Update token if current one is expired
+  if (access_token != null) {
+
+    let date = Date.now();
+    if (expires_at < Date.now()) {
+      console.log('local: access token expired. trying to refresh.');
+      refreshToken();
+      // block execution until token becomes valid
+      do {
+        //
+      } while (expires_at < Date.now());
+      console.log('local: got new access token');
+    }
+  }
+}
+
 function handleError(error) {
   console.error(error);
   $("#main").innerHTML = errorTemplate({
@@ -217,7 +225,7 @@ function processTokenResponse(data) {
   });
 
   // load data of logged in user
-  getUserData();
+  //getUserData();
 }
 
 function getUserData() {

@@ -16,8 +16,8 @@ var currentPlayingTrackIndex = -1;
 //var currentPlayingTrackDuration = -1;
 var previousPlayerPauseState = true;
 var intervalProgressNeedle;
-
 let sliderDifference = 0;
+let overrideStartPosition = -1;
 
 // flags
 let has_opened_playlist = false;
@@ -94,7 +94,10 @@ $( document ).ready(function() {
     window.open(playlistData[selected_playlist_index].external_urls.spotify, '_blank').focus();
   });
 
-
+  $('#button-copy').click(function() {
+    navigator.clipboard.writeText(window.location.href);
+    $(this).text('assignment_turned_in');
+  });
 
   // Filter field
   $('#filter').val("");
@@ -278,6 +281,7 @@ function queueTrack(index) {
 /** Recursive function to get all the user's playlists and filter for owned ones only
 */
 function getPlaylists(update = false, offset = 0, limit = 50) {
+  uptakeTokenIfExpired();
 
   $('#loading-container').fadeIn();
 
@@ -340,8 +344,11 @@ function updatePlaylists() {
     let durationString = "";
 
     if (descData) {
-      if (descData.length > 0) durationString += '<span class="material-symbols-rounded">queue_music</span>'+descData.length+' ';
+      durationString += '<span class="material-symbols-rounded">queue_music</span>'+descData.length+' ';
       durationString += '<span class="material-symbols-rounded">timer</span>'+msToTimestamp(totalPlayTimeFromDesc(descData));
+    }
+    else {
+      durationString += '<span class="material-symbols-rounded">queue_music</span>'+playlistData[i].tracks.total;
     }
 
     $("#playlists").append(
@@ -407,12 +414,19 @@ function updatePlaylists() {
     selected_playlist_data = parseDesc( playlistData[$(this).index()].description );
     getTracks(selected_playlist_id);
 
+
+    // Reset 'share' icon
+    $('#button-copy').text('share');
+
     $(location).attr('hash', event.target.id.replace("playlist-", "")); // Set the location hash to this id
   });
 
   // If hash attribute already exists in URL, open up that playlist
   if ($(location).attr('hash')) {
-    $( $(location).attr('hash').replace("#", "#playlist-") ).click();
+    console.log('local: got playlist from hash ' + $(location).attr('hash'));
+    let targetPlaylist = $( $(location).attr('hash').replace("#", "#playlist-") );
+    if (targetPlaylist.length > 0) targetPlaylist.click();
+    else addPlaylistToLibrary($(location).attr('hash').replace("#", "")); // if this playlist is not in user's library, add it
   }
 
   // Reapply filter
@@ -459,6 +473,8 @@ function msToTimestamp(ms) {
 /** Get tracks from specified playlist
 */
 function getTracks(playlist) {
+  uptakeTokenIfExpired();
+
   $.ajax({
     url: 'https://api.spotify.com/v1/playlists/'+playlist+'/tracks?limit=' + track_limit,
     type: 'GET',
@@ -583,9 +599,15 @@ function updateTracks(data) {
         saveTimes();
         // Seek to new position and start playing - makes editing easier
         // Only play from new point if user is already playing
-        if ($(".button-play-pause").eq($(this).siblings('.track-index').val()).text() == "stop") {
-          $(".button-play-pause").eq($(this).siblings('.track-index').val()).text('play_arrow').click();
+        if (ui.handleIndex == 0 && $(".button-play-pause").eq($(this).siblings('.track-index').val()).text() == "stop") {
+
         }
+        else if (ui.handleIndex == 1) { // always play if the user moved the right handle
+          overrideStartPosition = ui.value - 5000;
+          if (overrideStartPosition < ui.values[0]) overrideStartPosition = ui.values[0];
+        }
+        else return;
+        $(".button-play-pause").eq($(this).siblings('.track-index').val()).text('play_arrow').click();
 
       }
     });
@@ -618,18 +640,18 @@ function updateTracks(data) {
   // Individual play button
   $(".button-play-pause").click(function(event) {
 
-    clearTimeout(timerPause);
-    clearTimeout(timerPlay);
-    clearInterval(intervalProgressNeedle);
-    //clearInterval(intervalProgress);
-
-    previousPlayerPauseState = true; // Reset pause state for progress bar updates
 
     let index = parseInt(event.target.id.replace("play-button-", ""));
     let startTime = $(".slider").eq(index).slider( "values", 0 );
     let endTime = $(".slider").eq(index).slider( "values", 1 );
 
-    console.log('local: media button clicked on index ' + index + ' - existing status ' + $(this).text());
+      console.log('local: media button clicked on index ' + index + ' - existing status ' + $(this).text());
+
+    clearTimeout(timerPause);
+    clearTimeout(timerPlay);
+    clearInterval(intervalProgressNeedle);
+
+    previousPlayerPauseState = true; // Reset pause state for progress bar updates
 
     if ($(this).text() == 'play_arrow') { // play
       playTrack(selected_playlist_id, index, startTime, endTime-startTime);
@@ -660,6 +682,13 @@ function updateTimeDescriptions(index, start, end) {
 /** Play track from selectd playlist
 */
 function playTrack(playlist_id, index, start_position = 0, duration = 0) {
+  // Check if we need to override start position
+  if (overrideStartPosition >= 0) {
+    console.log('local: overriding start position to ' + overrideStartPosition);
+    start_position = overrideStartPosition;
+    overrideStartPosition = -1;
+  }
+
   console.log('local: playing track ' + index + ' of playlist ' + playlist_id + ' starting at ' + start_position + ' for ' + duration + ' duration');
 
   // Reset all buttons back to play
@@ -667,8 +696,6 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
 
   // Clear any existing pause timer
   clearTimeout(timerPause);
-
-
 
   // Save which index was clicked and the intended duration
   currentPlayingTrackIndex = index;
@@ -678,7 +705,6 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
                 "offset": { "position": '+index+' }, \
                 "position_ms": '+start_position+' \
               }';
-
   // Send API request to start playing
   $.ajax({
     url: 'https://api.spotify.com/v1/me/player/play',
