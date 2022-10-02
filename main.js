@@ -22,6 +22,7 @@ let overrideStartPosition = -1;
 // flags
 let has_opened_playlist = false;
 var playbackTransferred = false;
+let isMovingSlider = false;
 
 $( document ).ready(function() {
   console.log( "ready!" );
@@ -227,7 +228,8 @@ function onSpotifyWebPlaybackSDKReady() {
           $('.play-needle-container').eq(currentPlayingTrackIndex).css('left', (state.position/state.duration*100)+'%');
 
           // Check if playback is past the defined limit
-          if ( state.position >= $(".slider").eq(currentPlayingTrackIndex).slider( "values", 1 ) ) {
+          // only do so if the user is not currently moving the slider
+          if ( !isMovingSlider && state.position >= $(".slider").eq(currentPlayingTrackIndex).slider( "values", 1 ) ) {
             // Queue the next track
             if ($("#autopilot").is(':checked')) queueTrack(currentPlayingTrackIndex+1);
             pauseTrack();
@@ -599,6 +601,8 @@ function updateTracks(data) {
           height: '100%'
         });
 
+        isMovingSlider = true;
+
         // Get difference in sliders so difference can be preserved when moving left handle only
         sliderDifference = ui.values[1] - ui.values[0];
       },
@@ -609,11 +613,13 @@ function updateTracks(data) {
           height: 'auto'
         });
 
+        isMovingSlider = false;
+
         saveTimes();
+
         // Seek to new position and start playing - makes editing easier
         // Only play from new point if user is already playing
         if (ui.handleIndex == 0 && $(".button-play-pause").eq($(this).siblings('.track-index').val()).text() == "stop") {
-
         }
         else if (ui.handleIndex == 1) { // always play if the user moved the right handle
           overrideStartPosition = ui.value - 5000;
