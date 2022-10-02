@@ -200,7 +200,7 @@ function onSpotifyWebPlaybackSDKReady() {
     //console.log("Web player state changed");
     //console.log(state);
 
-    if (state.loading) return;  // Do not start progress bar if loading
+    if (state == null || state.loading) return;  // Do not start progress bar if loading
 
     // Save the pause state and do nothing if it has not changed
     // This is because this will trigger multiple times and reset the progress bar

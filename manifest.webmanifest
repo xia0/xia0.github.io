@@ -1,0 +1,15 @@
+{
+  "background_color": "purple",
+  "description": "Tool for hosting music trivia with Spotify.",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "name": "Music Trivia Tool",
+  "short_name": "MTT",
+  "start_url": "/"
+}
