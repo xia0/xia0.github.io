@@ -593,9 +593,22 @@ function updateTracks(data) {
         updateTimeDescriptions(i, ui.values[0], ui.values[1]);
       },
       start: function( event, ui ) {
+        // disable scrolling
+        $('html, body').css({
+          overflow: 'hidden',
+          height: '100%'
+        });
+
+        // Get difference in sliders so difference can be preserved when moving left handle only
         sliderDifference = ui.values[1] - ui.values[0];
       },
       stop: function( event, ui ) {
+        // re-enable scrolling
+        $('html, body').css({
+          overflow: 'auto',
+          height: 'auto'
+        });
+
         saveTimes();
         // Seek to new position and start playing - makes editing easier
         // Only play from new point if user is already playing
