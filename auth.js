@@ -163,6 +163,7 @@ function refreshToken() {
   })
   .then(addThrowErrorToFetch)
   .then(processTokenResponse)
+  .then(onSpotifyWebPlaybackSDKReady)
   .catch(handleError);
 }
 
@@ -170,7 +171,7 @@ function uptakeTokenIfExpired() {
   // Update token if current one is expired
   if (access_token != null) {
 
-    let date = Date.now();
+    //let date = Date.now();
     if (expires_at < Date.now()) {
       //console.log('local: access token expired. trying to refresh.');
       refreshToken();

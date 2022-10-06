@@ -1,5 +1,6 @@
 let default_end_time = 30*1000;
 let track_limit = 35;
+let playbackTimeFromEnd = 5000; // when moving the right slider, go back this far and play
 
 var playlistData = [];
 var user_id = "";
@@ -7,22 +8,23 @@ var selected_playlist_id = "";
 var selected_playlist_index = -1;
 var selected_playlist_data = [];
 var tracks_data = [];
-var timerSave;
+
+// timers and intervals
+var timerSave;  // wait before saving description
 var timerPause;
 var timerPlay;
+var intervalProgressNeedle; // interval to move the progress needle
 
 // Keep track for progress bar
 var currentPlayingTrackIndex = -1;
-//var currentPlayingTrackDuration = -1;
-var previousPlayerPauseState = true;
-var intervalProgressNeedle;
-let sliderDifference = 0;
-let overrideStartPosition = -1;
+var previousPlayerPauseState = true;  // Save previous player state - for checking if player state has changed since last check
+let sliderDifference = 0; // Save difference between start and end times for adjusting start position but maintain same duration
+let overrideStartPosition = -1; // Override selected start position - for playing x seconds from end of selection
 
 // flags
-let has_opened_playlist = false;
-var playbackTransferred = false;
-let isMovingSlider = false;
+let has_opened_playlist = false;  // Has the user opened a playlist since loading the page? for opening hashed playlist in URL
+var playbackTransferred = false;  // Has spotify web player transferred playback over?
+let isMovingSlider = false; // Keep track of whether the user is currently moving the slider or not
 
 $( document ).ready(function() {
   console.log( "ready!" );
@@ -133,6 +135,7 @@ $( document ).ready(function() {
 * Save the playlist's start and end times after a specified interval
 */
 function saveTimes(delay=2000) {
+  $('label[for=autosave] > span').html('save_as');
   clearTimeout(timerSave);
   timerSave = setTimeout(saveDescription, delay);
 }
@@ -142,7 +145,8 @@ function saveTimes(delay=2000) {
 */
 function onSpotifyWebPlaybackSDKReady() {
 
-  if (access_token == null) {
+  // Check if valid access token available. If not, wait until one is obtained.
+  if (access_token == null || expires_at < Date.now()) {
     // No access token yet, retry
     console.log('sdk: waiting for access token...');
     setTimeout(onSpotifyWebPlaybackSDKReady, 5000);
@@ -591,8 +595,9 @@ function updateTracks(data) {
       slide: function( event, ui ) {
         if (ui.handleIndex == 0 && $('.time-desc-duration-container').eq(i).is(":visible") ) {  // Keep interval the same when dragging left slider
           $(this).closest('.slider').slider('values',1,ui.values[0] + sliderDifference);
+          updateTimeDescriptions(i, ui.values[0], ui.values[0] + sliderDifference);
         }
-        updateTimeDescriptions(i, ui.values[0], ui.values[1]);
+        else updateTimeDescriptions(i, ui.values[0], ui.values[1]);
       },
       start: function( event, ui ) {
         // disable scrolling
@@ -613,6 +618,12 @@ function updateTracks(data) {
           height: 'auto'
         });
 
+        // manually set the difference again so we don't get any small discrepancies
+        if (ui.handleIndex == 0 && $('.time-desc-duration-container').eq(i).is(":visible") ) {  // Keep interval the same when dragging left slider
+          $(this).closest('.slider').slider('values',1,ui.values[0] + sliderDifference);
+        }
+        updateTimeDescriptions(i, ui.values[0], ui.values[1]);
+
         isMovingSlider = false;
 
         saveTimes();
@@ -622,7 +633,7 @@ function updateTracks(data) {
         if (ui.handleIndex == 0 && $(".button-play-pause").eq($(this).siblings('.track-index').val()).text() == "stop") {
         }
         else if (ui.handleIndex == 1) { // always play if the user moved the right handle
-          overrideStartPosition = ui.value - 5000;
+          overrideStartPosition = ui.value - playbackTimeFromEnd;
           if (overrideStartPosition < ui.values[0]) overrideStartPosition = ui.values[0];
         }
         else return;
@@ -847,6 +858,8 @@ function saveDescription(reset=false) {
   console.log('local: prepared data to save to playlist description');
   console.log(data);
 
+  $('label[for=autosave] > span').html('save_as'); // change the icon whilst save in progress
+
   $.ajax({
     url: 'https://api.spotify.com/v1/playlists/'+selected_playlist_id,
     type: 'PUT',
@@ -856,6 +869,7 @@ function saveDescription(reset=false) {
     data: data,
     success: function(data) {
       console.log('api: saved times to playlist '+selected_playlist_id+' description');
+      $('label[for=autosave] > span').text('save'); // reset icon to original
       //getPlaylists(true);
     }
   });
