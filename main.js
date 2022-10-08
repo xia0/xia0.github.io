@@ -257,7 +257,11 @@ function onSpotifyWebPlaybackSDKReady() {
   };
 
   $('#playerPause').click(function() {
-    player.pause();
+    player.pause().then(console.log('sdk: paused playback'));
+  });
+
+  $('#playerPlay').click(function() {
+    player.resume().then(console.log('sdk: resumed playback'));
   });
 
   player.connect();
@@ -321,6 +325,7 @@ function getPlaylists(update = false, offset = 0, limit = 50) {
   })
   .catch((error) => {
     console.error(error);
+    window.location(redirect_uri); // refresh the page if we get async error
   });
 }
 
@@ -745,6 +750,7 @@ function playTrack(playlist_id, index, start_position = 0, duration = 0) {
     data: data,
     success: function() {
       console.log("api: successful request for playback");
+      $('#playerPlay').click(); // on iOS browsers, users must click button?
     }
   });
 }
