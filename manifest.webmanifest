@@ -1,6 +1,6 @@
 {
   "background_color": "purple",
-  "description": "Tool for hosting music trivia with Spotify.",
+  "description": "Tool for playing snippets from your playlists.",
   "display": "fullscreen",
   "icons": [
     {
@@ -9,7 +9,7 @@
       "type": "image/png"
     }
   ],
-  "name": "Music Trivia Tool",
-  "short_name": "MTT",
+  "name": "Snipify",
+  "short_name": "Snipify",
   "start_url": "/"
 }

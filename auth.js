@@ -2,11 +2,11 @@
 // Your client id from your app in the spotify dashboard:
 // https://developer.spotify.com/dashboard/applications
 const client_id = '43a22aa24295448faec97a2636493a7d';
-//const redirect_uri = 'http://127.0.0.1/spotify-trivia/'; // Your redirect uri
+//const redirect_uri = 'http://127.0.0.1/spotify-snip/'; // Your redirect uri
 //const redirect_uri = 'http://127.0.0.1/'; // Your redirect uri
 //const redirect_uri = 'https://xia0.github.io/'; // Your redirect uri
 const redirect_uri = window.location.href.split(/[?#]/)[0];
-console.log('auth: redirect uri ' + redirect_uri);
+//console.log('auth: redirect uri ' + redirect_uri);
 
 // Restore tokens from localStorage
 let access_token = localStorage.getItem('access_token') || null;
@@ -17,7 +17,7 @@ uptakeTokenIfExpired();
 
 
 $( document ).ready(function() {
-  console.log( "auth ready" );
+
   // References for HTML rendering
   const mainPlaceholder = $('#main');
   const oauthPlaceholder = $('#oauth');
@@ -100,9 +100,10 @@ function redirectToSpotifyAuthorizeEndpoint() {
   generateCodeChallenge(codeVerifier).then((code_challenge) => {
     window.localStorage.setItem('code_verifier', codeVerifier);
 
-    // Redirect to example:
-    // GET https://accounts.spotify.com/authorize?response_type=code&client_id=77e602fc63fa4b96acff255ed33428d3&redirect_uri=http%3A%2F%2Flocalhost&scope=user-follow-modify&state=e21392da45dbf4&code_challenge=KADwyz1X~HIdcAG20lnXitK6k51xBP4pEMEZHmCneHD1JhrcHjE1P3yU_NjhBz4TdhV6acGo16PCd10xLwMJJ4uCutQZHw&code_challenge_method=S256
-
+    // user-read-playback-state
+    // user-read-currently-playing
+    // app-remote-control
+    // user-read-playback-position
     window.location = generateUrlWithSearchParams(
       'https://accounts.spotify.com/authorize',
       {
@@ -110,8 +111,7 @@ function redirectToSpotifyAuthorizeEndpoint() {
         client_id,
         scope: 'user-read-private user-read-email \
                 playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public \
-                user-read-playback-position user-read-playback-state user-read-currently-playing \
-                streaming app-remote-control',
+                streaming',
         code_challenge_method: 'S256',
         code_challenge,
         redirect_uri,
@@ -169,18 +169,9 @@ function refreshToken() {
 
 function uptakeTokenIfExpired() {
   // Update token if current one is expired
-  if (access_token != null) {
-
-    //let date = Date.now();
-    if (expires_at < Date.now()) {
-      //console.log('local: access token expired. trying to refresh.');
-      refreshToken();
-      // block execution until token becomes valid
-      //do {
-        //
-      //} while (expires_at < Date.now());
-      //console.log('local: got new access token');
-    }
+  if (access_token != null && expires_at < Date.now()) {
+    //console.log('local: access token expired. trying to refresh.');
+    refreshToken();
   }
 }
 

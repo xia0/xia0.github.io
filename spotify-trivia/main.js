@@ -63,8 +63,8 @@ function onSpotifyWebPlaybackSDKReady() {
 // Your client id from your app in the spotify dashboard:
 // https://developer.spotify.com/dashboard/applications
 const client_id = '43a22aa24295448faec97a2636493a7d';
-//const redirect_uri = 'http://127.0.0.1/spotify-trivia/'; // Your redirect uri
-const redirect_uri = 'https://xia0.github.io/spotify-trivia/'; // Your redirect uri
+//const redirect_uri = 'http://127.0.0.1/spotify-snip/'; // Your redirect uri
+const redirect_uri = 'https://xia0.github.io/spotify-snip/'; // Your redirect uri
 
 // Restore tokens from localStorage
 let access_token = localStorage.getItem('access_token') || null;
@@ -657,18 +657,18 @@ function updateTracks(data) {
     */
 
     // load track metadata
-    tracks_data[i].trivia_times = { start: 0, end: 0 }
+    tracks_data[i].snip_times = { start: 0, end: 0 }
 
     // see if start and end times are defined for this track
     if (typeof selected_playlist_data[i] !== 'undefined') {
-      tracks_data[i].trivia_times.start = selected_playlist_data[i][0];
-      tracks_data[i].trivia_times.end = selected_playlist_data[i][1];
+      tracks_data[i].snip_times.start = selected_playlist_data[i][0];
+      tracks_data[i].snip_times.end = selected_playlist_data[i][1];
     }
 
     // Set end time to track end if not yet specified
-    if (tracks_data[i].trivia_times.end <= 0) {
-      if (tracks_data[i].track.duration_ms < default_end_time) tracks_data[i].trivia_times.end = tracks_data[i].track.duration_ms;
-      else tracks_data[i].trivia_times.end = default_end_time;
+    if (tracks_data[i].snip_times.end <= 0) {
+      if (tracks_data[i].track.duration_ms < default_end_time) tracks_data[i].snip_times.end = tracks_data[i].track.duration_ms;
+      else tracks_data[i].snip_times.end = default_end_time;
     }
 
 
@@ -692,8 +692,8 @@ function updateTracks(data) {
         </div>\
         <div class="track-item-controls">\
           <div class="track-item-container"></div>\
-          <!--<input class="time-start" type="text" value="'+tracks_data[i].trivia_times.start+'" />\
-          <input class="time-end" type="text" value="'+tracks_data[i].trivia_times.end+'" />-->\
+          <!--<input class="time-start" type="text" value="'+tracks_data[i].snip_times.start+'" />\
+          <input class="time-end" type="text" value="'+tracks_data[i].snip_times.end+'" />-->\
           <input class="track-index" type="hidden" value="'+i+'" />\
           <div class="slider"></div>\
         </div>\
@@ -702,13 +702,13 @@ function updateTracks(data) {
 
 
     // Update our text for start times
-    updateTimeDescriptions(i, tracks_data[i].trivia_times.start, tracks_data[i].trivia_times.end);
+    updateTimeDescriptions(i, tracks_data[i].snip_times.start, tracks_data[i].snip_times.end);
 
     $( ".slider" ).last().slider({
       range: true,
       min: 0,
       max: tracks_data[i].track.duration_ms,
-      values: [ tracks_data[i].trivia_times.start, tracks_data[i].trivia_times.end ],
+      values: [ tracks_data[i].snip_times.start, tracks_data[i].snip_times.end ],
       step: 100,
       slide: function( event, ui ) {
         if (ui.handleIndex == 0) {  // Keep interval the same when dragging left slider

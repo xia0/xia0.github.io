@@ -27,8 +27,6 @@ var playbackTransferred = false;  // Has spotify web player transferred playback
 let isMovingSlider = false; // Keep track of whether the user is currently moving the slider or not
 
 $( document ).ready(function() {
-  console.log( "ready!" );
-
 
   // Save control settings to localdata
   if (localStorage.getItem('autoplay_mode') == 1) $('#autopilot').prop('checked', true);
@@ -149,12 +147,15 @@ function onSpotifyWebPlaybackSDKReady() {
   if (access_token == null || expires_at < Date.now()) {
     // No access token yet, retry
     console.log('sdk: waiting for access token...');
-    setTimeout(onSpotifyWebPlaybackSDKReady, 5000);
+    setTimeout(onSpotifyWebPlaybackSDKReady, 1000);
     return;
+  }
+  else {
+    console.log('sdk: access token found');
   }
 
   const player = new Spotify.Player({
-      name: 'Music Trivia Tool',
+      name: 'Snipify',
       getOAuthToken: cb => { cb(access_token); },
       volume: 0.5
   });
@@ -210,7 +211,8 @@ function onSpotifyWebPlaybackSDKReady() {
     // Save the pause state and do nothing if it has not changed
     // This is because this will trigger multiple times and reset the progress bar
     if (state.paused == previousPlayerPauseState) return;
-    else previousPlayerPauseState = state.paused;
+    else if (state.paused && currentPlayingTrackIndex >= 0) pauseTrack();  // Pause the track if it's been paused in another player
+    previousPlayerPauseState = state.paused;  // Update local state
 
     // Start moving the progress bar etc when the track actually starts to play
     if (!state.paused && currentPlayingTrackIndex >= 0) {  // Track has started playing
@@ -240,7 +242,7 @@ function onSpotifyWebPlaybackSDKReady() {
           }
 
         });
-      }, 100);
+      }, 50);
 
       // Change style of played tracks so it's easier to keep track
       $('.track-item').eq(currentPlayingTrackIndex).addClass('played');
@@ -533,18 +535,18 @@ function updateTracks(data) {
     */
 
     // load track metadata
-    tracks_data[i].trivia_times = { start: 0, end: 0 }
+    tracks_data[i].snip_times = { start: 0, end: 0 }
 
     // see if start and end times are defined for this track
     if (typeof selected_playlist_data[i] !== 'undefined') {
-      tracks_data[i].trivia_times.start = selected_playlist_data[i][0];
-      tracks_data[i].trivia_times.end = selected_playlist_data[i][1];
+      tracks_data[i].snip_times.start = selected_playlist_data[i][0];
+      tracks_data[i].snip_times.end = selected_playlist_data[i][1];
     }
 
     // Set end time to track end if not yet specified
-    if (tracks_data[i].trivia_times.end <= 0) {
-      if (tracks_data[i].track.duration_ms < default_end_time) tracks_data[i].trivia_times.end = tracks_data[i].track.duration_ms;
-      else tracks_data[i].trivia_times.end = default_end_time;
+    if (tracks_data[i].snip_times.end <= 0) {
+      if (tracks_data[i].track.duration_ms < default_end_time) tracks_data[i].snip_times.end = tracks_data[i].track.duration_ms;
+      else tracks_data[i].snip_times.end = default_end_time;
     }
 
 
@@ -574,8 +576,8 @@ function updateTracks(data) {
         </div>\
         <div class="track-item-controls">\
           <div class="track-item-container"></div>\
-          <!--<input class="time-start" type="text" value="'+tracks_data[i].trivia_times.start+'" />\
-          <input class="time-end" type="text" value="'+tracks_data[i].trivia_times.end+'" />-->\
+          <!--<input class="time-start" type="text" value="'+tracks_data[i].snip_times.start+'" />\
+          <input class="time-end" type="text" value="'+tracks_data[i].snip_times.end+'" />-->\
           <input class="track-index" type="hidden" value="'+i+'" />\
           <div class="slider"></div>\
         </div>\
@@ -584,14 +586,14 @@ function updateTracks(data) {
 
 
     // Update our text for start times
-    updateTimeDescriptions(i, tracks_data[i].trivia_times.start, tracks_data[i].trivia_times.end);
+    updateTimeDescriptions(i, tracks_data[i].snip_times.start, tracks_data[i].snip_times.end);
 
     // Add slider
     $( ".slider" ).last().slider({
       range: true,
       min: 0,
       max: tracks_data[i].track.duration_ms,
-      values: [ tracks_data[i].trivia_times.start, tracks_data[i].trivia_times.end ],
+      values: [ tracks_data[i].snip_times.start, tracks_data[i].snip_times.end ],
       step: 100,
       disabled: true,
       create: function( event, ui ) {
@@ -675,12 +677,11 @@ function updateTracks(data) {
   // Individual play button
   $(".button-play-pause").click(function(event) {
 
-
     let index = parseInt(event.target.id.replace("play-button-", ""));
     let startTime = $(".slider").eq(index).slider( "values", 0 );
     let endTime = $(".slider").eq(index).slider( "values", 1 );
 
-      console.log('local: media button clicked on index ' + index + ' - existing status ' + $(this).text());
+    console.log('local: media button clicked on index ' + index + ' - existing status ' + $(this).text());
 
     clearTimeout(timerPause);
     clearTimeout(timerPlay);

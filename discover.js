@@ -1,5 +1,4 @@
 $( document ).ready(function() {
-  console.log('tesst');
 
   $('#button-discover').click(function() {
     $('#loading-container').fadeIn();
@@ -24,7 +23,7 @@ function getFeaturedPlaylists(master_id) {
       'Authorization' : 'Bearer ' + access_token
     },
     success: function(data) {
-      console.log('Got list of discovery playlists');
+      console.log('discovery: got list of discovery playlists');
       $('#loading-container').fadeOut();
       let featured_playlist_ids = data.description.split(",");
 
