@@ -2,6 +2,8 @@ let default_end_time = 30*1000;
 let track_limit = 35;
 let playbackTimeFromEnd = 5000; // when moving the right slider, go back this far and play
 
+var appTitle = 'Snipify';
+
 var playlistData = [];
 var user_id = "";
 var selected_playlist_id = "";
@@ -70,6 +72,8 @@ $( document ).ready(function() {
     if (selected_playlist_index < 0) return; // do nothing if no playlist currently selected
 
     console.log('local: close playlist button clicked');
+
+    document.title = appTitle;
 
     selected_playlist_id = "";
     selected_playlist_index = -1;
@@ -155,7 +159,7 @@ function onSpotifyWebPlaybackSDKReady() {
   }
 
   const player = new Spotify.Player({
-      name: 'Snipify',
+      name: appTitle,
       getOAuthToken: cb => { cb(access_token); },
       volume: 0.5
   });
@@ -386,9 +390,16 @@ function updatePlaylists() {
   // open tracks upon clicking
   // user opened a playlist
   $(".playlist-item-container").click(function(event) {
+
     selected_playlist_id = event.target.id.replace("playlist-", "").replace("discover-");
     selected_playlist_index = $(this).children('.playlist-index').val();
     console.log('local: attempting to get playlist with index ' + selected_playlist_index + ' - id: ' + selected_playlist_id);
+
+    // Update page title
+    document.title = appTitle + ' - ' + playlistData[selected_playlist_index].name;
+
+    // Reset save icon
+    $('label[for=autosave] > span').html('save');
 
     if (has_opened_playlist) $("#tracks").html(""); // Check to make sure a playlist wasn't loaded on refresh
     else has_opened_playlist = true;
