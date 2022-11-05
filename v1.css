@@ -79,6 +79,10 @@ a {
   display: flex;
 }
 
+#header-menu > * {
+  cursor: pointer;
+}
+
 #display-name {
   white-space: nowrap;
   overflow: hidden;
