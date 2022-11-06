@@ -100,10 +100,10 @@ function redirectToSpotifyAuthorizeEndpoint() {
   generateCodeChallenge(codeVerifier).then((code_challenge) => {
     window.localStorage.setItem('code_verifier', codeVerifier);
 
-    //
-    //
-    //
-    //
+    // user-read-playback-state
+    // user-read-currently-playing
+    // app-remote-control
+    // user-read-playback-position
     window.location = generateUrlWithSearchParams(
       'https://accounts.spotify.com/authorize',
       {
@@ -111,7 +111,7 @@ function redirectToSpotifyAuthorizeEndpoint() {
         client_id,
         scope: 'user-read-private user-read-email \
                 playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public \
-                streaming user-read-playback-position app-remote-control user-read-playback-state user-read-currently-playing',
+                streaming',
         code_challenge_method: 'S256',
         code_challenge,
         redirect_uri,
