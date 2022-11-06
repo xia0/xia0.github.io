@@ -398,10 +398,8 @@ function updatePlaylists() {
     // Update page title
     document.title = appTitle + ' - ' + playlistData[selected_playlist_index].name;
 
-    // Reset save icon
-    $('label[for=autosave] > span').html('save');
-
-    if (has_opened_playlist) $("#tracks").html(""); // Check to make sure a playlist wasn't loaded on refresh
+    // Check to make sure a playlist wasn't loaded on refresh
+    if (has_opened_playlist) $("#tracks").html("");
     else has_opened_playlist = true;
 
     // Show loading spinner
@@ -425,7 +423,6 @@ function updatePlaylists() {
       $('#' + event.target.id + ' .playlist-details').html()
     );
 
-
     // Enable or disable autosave depending on if the user can write to the playlist
     if (playlistData[selected_playlist_index].collaborative ||
         playlistData[selected_playlist_index].owner.id == user_id
@@ -438,11 +435,14 @@ function updatePlaylists() {
     selected_playlist_data = parseDesc( playlistData[$(this).index()].description );
     getTracks(selected_playlist_id);
 
+    // Reset save icon
+    $('label[for=autosave] > span').html('save');
 
     // Reset 'share' icon
     $('#button-copy').text('share');
 
-    $(location).attr('hash', event.target.id.replace("playlist-", "")); // Set the location hash to this id
+    // Set the location hash to this id
+    $(location).attr('hash', event.target.id.replace("playlist-", ""));
   });
 
   // If hash attribute already exists in URL, open up that playlist
