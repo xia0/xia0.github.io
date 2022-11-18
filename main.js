@@ -207,10 +207,11 @@ function onSpotifyWebPlaybackSDKReady() {
 
   // Monitor player state so we can get exact start and stop times
   player.addListener('player_state_changed', ( state => {
-    //console.log("Web player state changed");
-    //console.log(state);
 
     if (state == null || state.loading) return;  // Do not start progress bar if loading
+
+    // Do not check if current playing track is out of sync - prevents track being stopped before it can start
+    if (state.track_window.current_track.id != $('.track-item').eq(currentPlayingTrackIndex).attr('id')) return;
 
     // Save the pause state and do nothing if it has not changed
     // This is because this will trigger multiple times and reset the progress bar
